@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "오목 증강전",
+  title: "증강 오목",
   description: "렌주룰 + 증강체 오목 게임",
 };
 
