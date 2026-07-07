@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import Link from "next/link";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
@@ -8,6 +8,7 @@ import DraftOverlay from "@/components/DraftOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
 import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
+import { playStoneSound, countTotalStones } from "@/lib/sound";
 
 const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
@@ -33,6 +34,16 @@ export default function LocalGamePage() {
     // forbiddenToken을 매번 올려주기 때문에, 같은 문구가 연달아 떠도 토큰만으로 타이머가 재시작됨
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forbiddenToken]);
+
+  // 보드 위 돌 개수가 늘어난 순간(=착수) 착수음 재생. 첫 렌더에는 안 울리게 null로 초기화
+  const prevStoneCountRef = useRef(null);
+  useEffect(() => {
+    const count = countTotalStones(board);
+    if (prevStoneCountRef.current !== null && count > prevStoneCountRef.current) {
+      playStoneSound();
+    }
+    prevStoneCountRef.current = count;
+  }, [board]);
 
   const opponent = currentPlayer === 1 ? 2 : 1;
   const boardBlockedCells = useMemo(

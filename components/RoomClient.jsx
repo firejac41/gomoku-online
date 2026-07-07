@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
 import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
+import { playStoneSound, countTotalStones } from "@/lib/sound";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
 import DraftOverlay from "@/components/DraftOverlay";
@@ -65,9 +66,20 @@ export default function RoomClient({ roomId }) {
   const [forbiddenMessage, setForbiddenMessage] = useState("");
   const gameStateRef = useRef(null);
   const forbiddenTimer = useRef(null);
+  const prevStoneCountRef = useRef(null);
 
   useEffect(() => {
     gameStateRef.current = gameState;
+  }, [gameState]);
+
+  // 보드 위 돌 개수가 늘어난 순간(=착수, 상대의 수 포함) 착수음 재생. 처음 로딩될 때는 안 울리게 함
+  useEffect(() => {
+    if (!gameState) return;
+    const count = countTotalStones(gameState.board);
+    if (prevStoneCountRef.current !== null && count > prevStoneCountRef.current) {
+      playStoneSound();
+    }
+    prevStoneCountRef.current = count;
   }, [gameState]);
 
   useEffect(() => {
