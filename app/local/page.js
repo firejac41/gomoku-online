@@ -4,7 +4,7 @@ import { useEffect, useMemo, useReducer } from "react";
 import Link from "next/link";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
-import DraftOverlay from "@/components/DraftOverlay";
+import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
 import { findThreatCells, findForbiddenCells } from "@/lib/gomokuEngine";
@@ -13,14 +13,15 @@ const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
   permaBlock: "빈 칸 1곳을 선택하세요",
   removeStone: "제거할 상대 돌을 선택하세요",
+  watchtower: "감시할 빈 칸 1곳을 선택하세요",
 };
 
 export default function LocalGamePage() {
   const [state, dispatch] = useReducer(gameReducer, undefined, initialGameState);
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
-    forbiddenMessage, forbiddenToken, draft, oneTimeUsed, pendingTarget,
-    blockedCells, permaBlockedCells, lastMove,
+    forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
+    blockedCells, permaBlockedCells, watchtowers, lastMove,
   } = state;
 
   // 금수/안내 메시지를 1.5초 후 자동으로 지움
@@ -37,6 +38,13 @@ export default function LocalGamePage() {
     () => [...blockedCells[currentPlayer], ...permaBlockedCells[currentPlayer]],
     [blockedCells, permaBlockedCells, currentPlayer]
   );
+  const fadedBlockedCells = useMemo(
+    () => [...blockedCells[opponent], ...permaBlockedCells[opponent]],
+    [blockedCells, permaBlockedCells, opponent]
+  );
+  const watchtowerCells = useMemo(() => [...watchtowers[1], ...watchtowers[2]], [watchtowers]);
+  const pendingCells = pendingTarget && pendingTarget.kind !== "removeStone" ? pendingTarget.selected : [];
+
   const threatCells = useMemo(() => {
     const myAugIds = ownedAugments[currentPlayer].map((a) => a.id);
     if (!myAugIds.includes("threatRadar")) return [];
@@ -78,7 +86,7 @@ export default function LocalGamePage() {
         <AugmentPanel
           title="⚫ 흑돌 증강체"
           augments={ownedAugments[1]}
-          canAct={!draft && !pendingTarget && !gameOver && currentPlayer === 1}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && currentPlayer === 1}
           usedMap={oneTimeUsed[1]}
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
@@ -86,15 +94,18 @@ export default function LocalGamePage() {
         <GomokuBoard
           board={board}
           onCellClick={handleBoardClick}
-          disabled={gameOver || !!draft}
+          disabled={gameOver || !!augmentSelect}
           blockedCells={boardBlockedCells}
+          fadedBlockedCells={fadedBlockedCells}
           forbiddenCells={forbiddenCells}
+          pendingCells={pendingCells}
+          watchtowerCells={watchtowerCells}
           threatCells={threatCells}
         />
         <AugmentPanel
           title="⚪ 백돌 증강체"
           augments={ownedAugments[2]}
-          canAct={!draft && !pendingTarget && !gameOver && currentPlayer === 2}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && currentPlayer === 2}
           usedMap={oneTimeUsed[2]}
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"
@@ -105,14 +116,15 @@ export default function LocalGamePage() {
 
       {gameOver && <WinOverlay message={winMessage} onRestart={() => dispatch({ type: "RESTART" })} />}
 
-      {draft && (
-        <DraftOverlay
-          playerLabel={draft.player === 1 ? "흑돌" : "백돌"}
-          stoneCount={stonesPlaced[draft.player]}
-          choices={draft.choices}
+      {augmentSelect && (
+        <AugmentSelectOverlay
+          playerLabel={augmentSelect.player === 1 ? "흑돌" : "백돌"}
+          stoneCount={stonesPlaced[augmentSelect.player]}
+          choices={augmentSelect.choices}
           onPick={(augment) => dispatch({ type: "PICK_AUGMENT", augment })}
-          rerolledSlots={draft.rerolledSlots}
+          rerolledSlots={augmentSelect.rerolledSlots}
           onRerollSlot={(index) => dispatch({ type: "REROLL_SLOT", index })}
+          isGamble={augmentSelect.isGamble}
         />
       )}
     </main>

@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ShapeDiagram } from "@/components/AugmentSelectOverlay";
 
 // 직접 "사용" 버튼으로 발동시키는 증강체들 (그 외는 상시 적용되는 패시브 효과라 버튼 없음)
 const ACTIVE_ABILITIES = {
   doubleMove: "이번 턴 2개 놓기",
-  removeStone: "상대 돌 제거",
+  removeStone: "상대 돌 제거 (사용하면 턴 넘어감)",
   undo: "상대 마지막 수 무르기",
   selfUndo: "내 마지막 수 무르기",
+  bind: "속박 사용 (상대 턴 스킵)",
+  watchtower: "감시탑 설치",
+  colorSwap: "돌 색 전체 반전 (사용하면 턴 넘어감)",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
@@ -61,6 +65,7 @@ export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAb
                 }
               >
                 {augment.desc}
+                {augment.shape && <ShapeDiagram shape={augment.shape} gridSize={augment.shapeGrid} />}
               </div>
             </li>
           );

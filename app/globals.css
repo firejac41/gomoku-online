@@ -175,7 +175,7 @@ body {
   100% { background-position: 250% 0; }
 }
 
-.draftOverlay {
+.augmentSelectOverlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
@@ -186,12 +186,58 @@ body {
   gap: 20px;
   animation: overlayFadeIn 0.3s ease-out;
 }
-.draftOverlay h2 {
+.augmentSelectContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  transition: opacity 0.15s ease;
+}
+.augmentSelectOverlay.peeking {
+  background: rgba(0, 0, 0, 0.06);
+}
+.augmentSelectOverlay.peeking .augmentSelectContent {
+  opacity: 0.05;
+  pointer-events: none;
+}
+.peekEyeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 13px;
+  padding: 8px 14px;
+  border: 1px solid #888;
+  border-radius: 20px;
+  background: #2b2b2b;
+  color: #f0f0f0;
+  cursor: pointer;
+  z-index: 40;
+  user-select: none;
+}
+.peekEyeButton:hover {
+  background: #1a1a1a;
+}
+.augmentSelectOverlay h2 {
   animation: draftTitlePop 0.45s cubic-bezier(.34, 1.56, .64, 1) both;
 }
-.draftCards {
+.augmentSelectCards {
   display: flex;
   gap: 20px;
+}
+.shapeDiagram {
+  display: grid;
+  gap: 3px;
+  width: 72px;
+  margin-top: 8px;
+}
+.shapeCell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.shapeCellFilled {
+  background: #f0f0f0;
 }
 .augmentCard {
   width: 160px;

@@ -7,13 +7,14 @@ import { gameReducer, initialGameState } from "@/lib/gameReducer";
 import { findThreatCells, findForbiddenCells } from "@/lib/gomokuEngine";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
-import DraftOverlay from "@/components/DraftOverlay";
+import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
 import WinOverlay from "@/components/WinOverlay";
 
 const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
   permaBlock: "빈 칸 1곳을 선택하세요",
   removeStone: "제거할 상대 돌을 선택하세요",
+  watchtower: "감시할 빈 칸 1곳을 선택하세요",
 };
 
 // 방에 아직 아무도 흑/백을 안 맡았으면 선점, 이미 있으면 남은 자리 선점, 둘 다 찼으면 관전
@@ -162,13 +163,13 @@ export default function RoomClient({ roomId }) {
 
   function handlePick(augment) {
     const current = gameStateRef.current;
-    if (!current?.draft || myRole !== current.draft.player) return;
+    if (!current?.augmentSelect || myRole !== current.augmentSelect.player) return;
     dispatchAction({ type: "PICK_AUGMENT", augment });
   }
 
   function handleRerollSlot(index) {
     const current = gameStateRef.current;
-    if (!current?.draft || myRole !== current.draft.player) return;
+    if (!current?.augmentSelect || myRole !== current.augmentSelect.player) return;
     dispatchAction({ type: "REROLL_SLOT", index });
   }
 
@@ -213,13 +214,28 @@ export default function RoomClient({ roomId }) {
 
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
-    draft, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells,
+    augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowers,
   } = gameState;
   const roleLabel = myRole === 1 ? "흑돌" : myRole === 2 ? "백돌" : "관전";
   const waitingForOpponent = !roomMeta.black_claimed || !roomMeta.white_claimed;
+
+  // 진하게: 나를 실제로 막는 칸 / 흐리게: 내가 상대에게 건 금지라 나는 상관없는 칸 (관전자는 전부 흐리게)
   const boardBlockedCells = myRole === 1 || myRole === 2
     ? [...blockedCells[myRole], ...permaBlockedCells[myRole]]
     : [];
+  const fadedBlockedCells = myRole === 1 || myRole === 2
+    ? [...blockedCells[opponentRole], ...permaBlockedCells[opponentRole]]
+    : [...blockedCells[1], ...permaBlockedCells[1], ...blockedCells[2], ...permaBlockedCells[2]];
+
+  // 감시탑 표시 칸: 누가 설치했든 양쪽에 다 보임
+  const watchtowerCells = [...watchtowers[1], ...watchtowers[2]];
+
+  // 금지구역/영구봉쇄/감시탑처럼 여러 칸을 고르는 중이면, 지금까지 고른 칸을 표시
+  const pendingCells = pendingTarget && pendingTarget.kind !== "removeStone" ? pendingTarget.selected : [];
+
+  // 온라인 한정: 증강 선택 중엔 상대(와 관전자)에게 카드 내용을 숨기고, 고르는 사람 화면에만 실제 카드를 보여줌
+  const isMyAugmentSelect = augmentSelect && myRole === augmentSelect.player;
+  const isOthersAugmentSelect = augmentSelect && !isMyAugmentSelect;
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center text-center gap-2 py-8">
@@ -247,7 +263,7 @@ export default function RoomClient({ roomId }) {
         <AugmentPanel
           title="⚫ 흑돌 증강체"
           augments={ownedAugments[1]}
-          canAct={!draft && !pendingTarget && !gameOver && currentPlayer === 1 && myRole === 1}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && currentPlayer === 1 && myRole === 1}
           usedMap={oneTimeUsed[1]}
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
@@ -255,15 +271,18 @@ export default function RoomClient({ roomId }) {
         <GomokuBoard
           board={board}
           onCellClick={handleCellClick}
-          disabled={gameOver || !!draft || myRole === "spectator"}
+          disabled={gameOver || !!augmentSelect || myRole === "spectator"}
           blockedCells={boardBlockedCells}
+          fadedBlockedCells={fadedBlockedCells}
           forbiddenCells={forbiddenCells}
+          pendingCells={pendingCells}
+          watchtowerCells={watchtowerCells}
           threatCells={threatCells}
         />
         <AugmentPanel
           title="⚪ 백돌 증강체"
           augments={ownedAugments[2]}
-          canAct={!draft && !pendingTarget && !gameOver && currentPlayer === 2 && myRole === 2}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && currentPlayer === 2 && myRole === 2}
           usedMap={oneTimeUsed[2]}
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"
@@ -274,15 +293,24 @@ export default function RoomClient({ roomId }) {
 
       {gameOver && <WinOverlay message={winMessage} onRestart={handleRestart} />}
 
-      {draft && (
-        <DraftOverlay
-          playerLabel={draft.player === 1 ? "흑돌" : "백돌"}
-          stoneCount={stonesPlaced[draft.player]}
-          choices={draft.choices}
+      {isMyAugmentSelect && (
+        <AugmentSelectOverlay
+          playerLabel={augmentSelect.player === 1 ? "흑돌" : "백돌"}
+          stoneCount={stonesPlaced[augmentSelect.player]}
+          choices={augmentSelect.choices}
           onPick={handlePick}
-          rerolledSlots={draft.rerolledSlots}
+          rerolledSlots={augmentSelect.rerolledSlots}
           onRerollSlot={handleRerollSlot}
+          isGamble={augmentSelect.isGamble}
         />
+      )}
+
+      {isOthersAugmentSelect && (
+        <div className="augmentSelectOverlay">
+          <div className="augmentSelectContent">
+            <h2>{(augmentSelect.player === 1 ? "흑돌" : "백돌") + "이 증강 선택 중..."}</h2>
+          </div>
+        </div>
       )}
     </main>
   );

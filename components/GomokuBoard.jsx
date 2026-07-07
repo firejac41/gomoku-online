@@ -9,9 +9,20 @@ const STONE_RADIUS = 17;
 const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 
 // 15x15 오목판을 캔버스에 그리고, 클릭 좌표를 격자 좌표로 바꿔 onCellClick(x, y)로 알려줌
-// blockedCells: 증강체로 못 놓는 칸, forbiddenCells: 렌주룰 금수 칸 (둘 다 빨간 X 표시)
-// threatCells: 위험 감지로 강조할 칸(빨간 테두리)
-export default function GomokuBoard({ board, onCellClick, disabled, blockedCells = [], forbiddenCells = [], threatCells = [] }) {
+// blockedCells: 나를 실제로 막는 칸(진한 X), fadedBlockedCells: 내가 상대에게 건 금지라 나는 상관없는 칸(흐린 X)
+// forbiddenCells: 렌주룰 금수 칸(진한 X), pendingCells: 금지구역 등 여러 칸 선택 중 이미 고른 칸(주황 테두리)
+// watchtowerCells: 감시탑이 걸려있는 칸(보라 점선 테두리, 양쪽에 다 보임), threatCells: 위험 감지로 강조할 칸(빨간 테두리)
+export default function GomokuBoard({
+  board,
+  onCellClick,
+  disabled,
+  blockedCells = [],
+  fadedBlockedCells = [],
+  forbiddenCells = [],
+  pendingCells = [],
+  watchtowerCells = [],
+  threatCells = [],
+}) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -34,11 +45,7 @@ export default function GomokuBoard({ board, onCellClick, disabled, blockedCells
       ctx.stroke();
     }
 
-    // 막힌 칸 / 렌주룰 금수 칸: 빨간 X 표시
-    ctx.strokeStyle = "#e74c3c";
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    for (const { x, y } of [...blockedCells, ...forbiddenCells]) {
+    function drawX(x, y) {
       const cx = PADDING + x * CELL;
       const cy = PADDING + y * CELL;
       const half = CELL * 0.28;
@@ -47,6 +54,46 @@ export default function GomokuBoard({ board, onCellClick, disabled, blockedCells
       ctx.lineTo(cx + half, cy + half);
       ctx.moveTo(cx + half, cy - half);
       ctx.lineTo(cx - half, cy + half);
+      ctx.stroke();
+    }
+
+    // 나를 실제로 막는 칸 / 렌주룰 금수 칸: 진한 빨간 X 표시
+    ctx.strokeStyle = "#e74c3c";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.globalAlpha = 1;
+    for (const { x, y } of [...blockedCells, ...forbiddenCells]) {
+      drawX(x, y);
+    }
+
+    // 내가 상대에게 건 금지 칸: 나한테는 상관없으니 흐리게 표시 (누가 놓은 건지 구분되도록)
+    ctx.globalAlpha = 0.32;
+    for (const { x, y } of fadedBlockedCells) {
+      drawX(x, y);
+    }
+    ctx.globalAlpha = 1;
+
+    // 감시탑: 여기 두면 무효화되는 칸 - 양쪽에 다 보이는 보라색 점선 테두리
+    for (const { x, y } of watchtowerCells) {
+      const cx = PADDING + x * CELL;
+      const cy = PADDING + y * CELL;
+      ctx.beginPath();
+      ctx.setLineDash([4, 3]);
+      ctx.arc(cx, cy, STONE_RADIUS + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = "#9b59b6";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // 금지구역 등 여러 칸을 고르는 중일 때, 이미 고른 칸 표시
+    for (const { x, y } of pendingCells) {
+      const cx = PADDING + x * CELL;
+      const cy = PADDING + y * CELL;
+      ctx.beginPath();
+      ctx.arc(cx, cy, STONE_RADIUS, 0, Math.PI * 2);
+      ctx.strokeStyle = "#f5a623";
+      ctx.lineWidth = 3;
       ctx.stroke();
     }
 
@@ -78,7 +125,7 @@ export default function GomokuBoard({ board, onCellClick, disabled, blockedCells
         }
       }
     }
-  }, [board, blockedCells, forbiddenCells, threatCells]);
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatCells]);
 
   function handleClick(e) {
     if (disabled) return;
