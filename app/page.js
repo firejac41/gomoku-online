@@ -8,6 +8,7 @@ export default function HomePage() {
       <div className="flex flex-col gap-4 mt-4">
         <Link href="/local" className="bigButton">로컬 대전 (한 화면에서 번갈아 두기)</Link>
         <Link href="/online" className="bigButton">온라인 대전 (링크로 초대)</Link>
+        <Link href="/online/quick" className="bigButton">온라인 대전 (빠른 매칭)</Link>
       </div>
     </main>
   );

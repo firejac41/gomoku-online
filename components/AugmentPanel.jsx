@@ -9,8 +9,13 @@ const ACTIVE_ABILITIES = {
   removeStone: "상대 돌 제거 (사용하면 턴 넘어감)",
   undo: "상대 마지막 수 무르기",
   selfUndo: "내 마지막 수 무르기",
-  bind: "속박 사용 (상대 턴 스킵)",
+  coinFlip: "동전 던지기",
+  bind: "상대 턴 스킵",
+  stinginess: "상대 증강 선택 줄이기",
+  barter: "거래하기",
   watchtower: "감시탑 설치",
+  ultimatum: "최후통첩 선언",
+  leverage: "저울질 사용",
   colorSwap: "돌 색 전체 반전 (사용하면 턴 넘어감)",
 };
 

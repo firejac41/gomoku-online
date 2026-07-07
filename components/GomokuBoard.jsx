@@ -11,7 +11,7 @@ const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 // 15x15 오목판을 캔버스에 그리고, 클릭 좌표를 격자 좌표로 바꿔 onCellClick(x, y)로 알려줌
 // blockedCells: 나를 실제로 막는 칸(진한 X), fadedBlockedCells: 내가 상대에게 건 금지라 나는 상관없는 칸(흐린 X)
 // forbiddenCells: 렌주룰 금수 칸(진한 X), pendingCells: 금지구역 등 여러 칸 선택 중 이미 고른 칸(주황 테두리)
-// watchtowerCells: 감시탑이 걸려있는 칸(보라 점선 테두리, 양쪽에 다 보임), threatCells: 위험 감지로 강조할 칸(빨간 테두리)
+// watchtowerCells: 감시탑이 세워진 칸(주황 다이아몬드 - 숨김 없이 둘 다에게 보임), threatCells: 위험 감지로 강조할 칸(빨간 테두리)
 export default function GomokuBoard({
   board,
   onCellClick,
@@ -73,17 +73,31 @@ export default function GomokuBoard({
     }
     ctx.globalAlpha = 1;
 
-    // 감시탑: 여기 두면 무효화되는 칸 - 양쪽에 다 보이는 보라색 점선 테두리
-    for (const { x, y } of watchtowerCells) {
+    // 위험 감지: 상대가 다음에 두면 이기는 칸 강조
+    for (const { x, y } of threatCells) {
       const cx = PADDING + x * CELL;
       const cy = PADDING + y * CELL;
       ctx.beginPath();
-      ctx.setLineDash([4, 3]);
-      ctx.arc(cx, cy, STONE_RADIUS + 2, 0, Math.PI * 2);
-      ctx.strokeStyle = "#9b59b6";
+      ctx.arc(cx, cy, STONE_RADIUS + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = "#ff4d4d";
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.setLineDash([]);
+    }
+
+    // 감시탑: 여기에 두면 무효화되는 칸 - 주황 다이아몬드로 표시 (숨김 없이 양쪽 다 보임)
+    ctx.strokeStyle = "#f39c12";
+    ctx.lineWidth = 2;
+    for (const { x, y } of watchtowerCells) {
+      const cx = PADDING + x * CELL;
+      const cy = PADDING + y * CELL;
+      const half = CELL * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - half);
+      ctx.lineTo(cx + half, cy);
+      ctx.lineTo(cx, cy + half);
+      ctx.lineTo(cx - half, cy);
+      ctx.closePath();
+      ctx.stroke();
     }
 
     // 금지구역 등 여러 칸을 고르는 중일 때, 이미 고른 칸 표시
@@ -94,17 +108,6 @@ export default function GomokuBoard({
       ctx.arc(cx, cy, STONE_RADIUS, 0, Math.PI * 2);
       ctx.strokeStyle = "#f5a623";
       ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-
-    // 위험 감지: 상대가 다음에 두면 이기는 칸 강조
-    for (const { x, y } of threatCells) {
-      const cx = PADDING + x * CELL;
-      const cy = PADDING + y * CELL;
-      ctx.beginPath();
-      ctx.arc(cx, cy, STONE_RADIUS + 4, 0, Math.PI * 2);
-      ctx.strokeStyle = "#ff4d4d";
-      ctx.lineWidth = 2;
       ctx.stroke();
     }
 

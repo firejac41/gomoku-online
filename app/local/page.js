@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import Link from "next/link";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
 import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
-import { findThreatCells, findForbiddenCells } from "@/lib/gomokuEngine";
+import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
+import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 
 const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
   permaBlock: "빈 칸 1곳을 선택하세요",
   removeStone: "제거할 상대 돌을 선택하세요",
-  watchtower: "감시할 빈 칸 1곳을 선택하세요",
+  watchtower: "감시탑을 세울 빈 칸을 선택하세요",
+  ultimatum: "최후통첩으로 선언할 빈 칸을 선택하세요",
 };
 
 export default function LocalGamePage() {
@@ -21,7 +23,7 @@ export default function LocalGamePage() {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
-    blockedCells, permaBlockedCells, watchtowers, lastMove,
+    blockedCells, permaBlockedCells, lastMove, watchtowerCells,
   } = state;
 
   // 금수/안내 메시지를 1.5초 후 자동으로 지움
@@ -33,6 +35,25 @@ export default function LocalGamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forbiddenToken]);
 
+  // 보드 위 돌 개수가 늘어난 순간(=착수) 착수음 재생. 첫 렌더에는 안 울리게 null로 초기화
+  const prevStoneCountRef = useRef(null);
+  useEffect(() => {
+    const count = countTotalStones(board);
+    if (prevStoneCountRef.current !== null && count > prevStoneCountRef.current) {
+      playStoneSound();
+    }
+    prevStoneCountRef.current = count;
+  }, [board]);
+
+  // 증강 선택 카드가 새로 뜨는 순간(null -> 카드 목록)에만 증강 등장음 재생. 리롤로 카드가 바뀔 때는 다시 안 울림
+  const hadAugmentSelectRef = useRef(false);
+  useEffect(() => {
+    if (augmentSelect && !hadAugmentSelectRef.current) {
+      playAugmentSound();
+    }
+    hadAugmentSelectRef.current = !!augmentSelect;
+  }, [augmentSelect]);
+
   const opponent = currentPlayer === 1 ? 2 : 1;
   const boardBlockedCells = useMemo(
     () => [...blockedCells[currentPlayer], ...permaBlockedCells[currentPlayer]],
@@ -42,21 +63,27 @@ export default function LocalGamePage() {
     () => [...blockedCells[opponent], ...permaBlockedCells[opponent]],
     [blockedCells, permaBlockedCells, opponent]
   );
-  const watchtowerCells = useMemo(() => [...watchtowers[1], ...watchtowers[2]], [watchtowers]);
+  // 감시탑은 숨김이 없어서 누구 턴이든 양쪽에 세워진 걸 다 보여줌
+  const boardWatchtowerCells = useMemo(
+    () => [...watchtowerCells[1], ...watchtowerCells[2]],
+    [watchtowerCells]
+  );
   const pendingCells = pendingTarget && pendingTarget.kind !== "removeStone" ? pendingTarget.selected : [];
 
   const threatCells = useMemo(() => {
     const myAugIds = ownedAugments[currentPlayer].map((a) => a.id);
     if (!myAugIds.includes("threatRadar")) return [];
-    const opponentAugIds = ownedAugments[opponent].map((a) => a.id);
+    const totalStonesPlaced = stonesPlaced[1] + stonesPlaced[2];
+    const opponentAugIds = getEffectiveAugmentIds(ownedAugments[opponent].map((a) => a.id), totalStonesPlaced);
     return findThreatCells(board, opponent, opponentAugIds, lastMove[opponent]);
-  }, [board, ownedAugments, currentPlayer, opponent, lastMove]);
+  }, [board, ownedAugments, currentPlayer, opponent, lastMove, stonesPlaced]);
 
   // 렌주룰 금수는 흑돌 차례에만 의미 있음
   const forbiddenCells = useMemo(() => {
     if (currentPlayer !== 1) return [];
-    return findForbiddenCells(board, ownedAugments[1].map((a) => a.id), lastMove[1]);
-  }, [board, ownedAugments, currentPlayer, lastMove]);
+    const ownedIds = getEffectiveAugmentIds(ownedAugments[1].map((a) => a.id), stonesPlaced[1] + stonesPlaced[2]);
+    return findForbiddenCells(board, ownedIds, lastMove[1]);
+  }, [board, ownedAugments, currentPlayer, lastMove, stonesPlaced]);
 
   function handleBoardClick(x, y) {
     if (pendingTarget) {
@@ -99,7 +126,7 @@ export default function LocalGamePage() {
           fadedBlockedCells={fadedBlockedCells}
           forbiddenCells={forbiddenCells}
           pendingCells={pendingCells}
-          watchtowerCells={watchtowerCells}
+          watchtowerCells={boardWatchtowerCells}
           threatCells={threatCells}
         />
         <AugmentPanel

@@ -33,7 +33,7 @@ export default function OnlinePage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-4">
-      <h1 className="text-2xl font-bold">온라인 대전</h1>
+      <h1 className="text-2xl font-bold">온라인 대전 (링크로 초대)</h1>
       <p className="opacity-80 max-w-sm">
         방을 만들면 공유 링크가 생겨요. 그 링크를 상대방에게 보내면 같은 판에서 실시간으로 대전할 수 있어요.
       </p>

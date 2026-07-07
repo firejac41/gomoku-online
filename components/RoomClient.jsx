@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
-import { findThreatCells, findForbiddenCells } from "@/lib/gomokuEngine";
+import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
+import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
 import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
@@ -14,7 +15,8 @@ const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
   permaBlock: "빈 칸 1곳을 선택하세요",
   removeStone: "제거할 상대 돌을 선택하세요",
-  watchtower: "감시할 빈 칸 1곳을 선택하세요",
+  watchtower: "감시탑을 세울 빈 칸을 선택하세요",
+  ultimatum: "최후통첩으로 선언할 빈 칸을 선택하세요",
 };
 
 // 방에 아직 아무도 흑/백을 안 맡았으면 선점, 이미 있으면 남은 자리 선점, 둘 다 찼으면 관전
@@ -64,9 +66,30 @@ export default function RoomClient({ roomId }) {
   const [forbiddenMessage, setForbiddenMessage] = useState("");
   const gameStateRef = useRef(null);
   const forbiddenTimer = useRef(null);
+  const prevStoneCountRef = useRef(null);
+  const hadAugmentSelectRef = useRef(false);
 
   useEffect(() => {
     gameStateRef.current = gameState;
+  }, [gameState]);
+
+  // 보드 위 돌 개수가 늘어난 순간(=착수, 상대의 수 포함) 착수음 재생. 처음 로딩될 때는 안 울리게 함
+  useEffect(() => {
+    if (!gameState) return;
+    const count = countTotalStones(gameState.board);
+    if (prevStoneCountRef.current !== null && count > prevStoneCountRef.current) {
+      playStoneSound();
+    }
+    prevStoneCountRef.current = count;
+  }, [gameState]);
+
+  // 증강 선택 카드가 새로 뜨는 순간(null -> 카드 목록)에만 증강 등장음 재생. 리롤로 카드가 바뀔 때는 다시 안 울림. 양쪽 클라이언트 다 들림
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.augmentSelect && !hadAugmentSelectRef.current) {
+      playAugmentSound();
+    }
+    hadAugmentSelectRef.current = !!gameState.augmentSelect;
   }, [gameState]);
 
   useEffect(() => {
@@ -140,9 +163,12 @@ export default function RoomClient({ roomId }) {
     const newState = gameReducer(current, action);
     if (newState === current) return;
 
+    // 안내 메시지(먼저 보기/동전 던지기/거래 등)는 실제 상태 변화 여부와 무관하게 나한테만 로컬로 띄움
+    // (gameState.forbiddenMessage는 서버에 올라가도 상대 화면에서는 안 쓰이니 상대에게 새어나가지 않음)
+    if (newState.forbiddenMessage) flashForbidden(newState.forbiddenMessage);
+
     if (!hasRealChange(current, newState)) {
       // 렌주룰 금수 안내처럼 나한테만 보이면 되는 변화는 서버에 안 올림
-      if (newState.forbiddenMessage) flashForbidden(newState.forbiddenMessage);
       return;
     }
 
@@ -188,14 +214,18 @@ export default function RoomClient({ roomId }) {
     if (!gameState || opponentRole === null || gameState.currentPlayer !== myRole) return [];
     const myAugIds = gameState.ownedAugments[myRole].map((a) => a.id);
     if (!myAugIds.includes("threatRadar")) return [];
-    const opponentAugIds = gameState.ownedAugments[opponentRole].map((a) => a.id);
+    const totalStonesPlaced = gameState.stonesPlaced[1] + gameState.stonesPlaced[2];
+    const opponentAugIds = getEffectiveAugmentIds(gameState.ownedAugments[opponentRole].map((a) => a.id), totalStonesPlaced);
     return findThreatCells(gameState.board, opponentRole, opponentAugIds, gameState.lastMove[opponentRole]);
   }, [gameState, myRole, opponentRole]);
 
   // 렌주룰 금수는 흑돌 차례에만 의미 있고, 흑돌 본인 화면에만 표시
   const forbiddenCells = useMemo(() => {
     if (!gameState || myRole !== 1 || gameState.currentPlayer !== 1) return [];
-    const ownedIds = gameState.ownedAugments[1].map((a) => a.id);
+    const ownedIds = getEffectiveAugmentIds(
+      gameState.ownedAugments[1].map((a) => a.id),
+      gameState.stonesPlaced[1] + gameState.stonesPlaced[2]
+    );
     return findForbiddenCells(gameState.board, ownedIds, gameState.lastMove[1]);
   }, [gameState, myRole]);
 
@@ -214,7 +244,7 @@ export default function RoomClient({ roomId }) {
 
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
-    augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowers,
+    augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
   } = gameState;
   const roleLabel = myRole === 1 ? "흑돌" : myRole === 2 ? "백돌" : "관전";
   const waitingForOpponent = !roomMeta.black_claimed || !roomMeta.white_claimed;
@@ -227,8 +257,8 @@ export default function RoomClient({ roomId }) {
     ? [...blockedCells[opponentRole], ...permaBlockedCells[opponentRole]]
     : [...blockedCells[1], ...permaBlockedCells[1], ...blockedCells[2], ...permaBlockedCells[2]];
 
-  // 감시탑 표시 칸: 누가 설치했든 양쪽에 다 보임
-  const watchtowerCells = [...watchtowers[1], ...watchtowers[2]];
+  // 감시탑은 숨김이 없어서 누구든 양쪽에 세워진 걸 다 보여줌
+  const boardWatchtowerCells = [...watchtowerCells[1], ...watchtowerCells[2]];
 
   // 금지구역/영구봉쇄/감시탑처럼 여러 칸을 고르는 중이면, 지금까지 고른 칸을 표시
   const pendingCells = pendingTarget && pendingTarget.kind !== "removeStone" ? pendingTarget.selected : [];
@@ -276,7 +306,7 @@ export default function RoomClient({ roomId }) {
           fadedBlockedCells={fadedBlockedCells}
           forbiddenCells={forbiddenCells}
           pendingCells={pendingCells}
-          watchtowerCells={watchtowerCells}
+          watchtowerCells={boardWatchtowerCells}
           threatCells={threatCells}
         />
         <AugmentPanel
