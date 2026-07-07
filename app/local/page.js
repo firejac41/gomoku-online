@@ -7,12 +7,14 @@ import AugmentPanel from "@/components/AugmentPanel";
 import DraftOverlay from "@/components/DraftOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
-import { findThreatCells, findForbiddenCells } from "@/lib/gomokuEngine";
+import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
 
 const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
   permaBlock: "빈 칸 1곳을 선택하세요",
   removeStone: "제거할 상대 돌을 선택하세요",
+  watchtower: "감시탑을 세울 빈 칸을 선택하세요",
+  ultimatum: "최후통첩으로 선언할 빈 칸을 선택하세요",
 };
 
 export default function LocalGamePage() {
@@ -20,7 +22,7 @@ export default function LocalGamePage() {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, draft, oneTimeUsed, pendingTarget,
-    blockedCells, permaBlockedCells, lastMove,
+    blockedCells, permaBlockedCells, lastMove, watchtowerCells,
   } = state;
 
   // 금수/안내 메시지를 1.5초 후 자동으로 지움
@@ -37,18 +39,25 @@ export default function LocalGamePage() {
     () => [...blockedCells[currentPlayer], ...permaBlockedCells[currentPlayer]],
     [blockedCells, permaBlockedCells, currentPlayer]
   );
+  // 감시탑은 숨김이 없어서 누구 턴이든 양쪽에 세워진 걸 다 보여줌
+  const boardWatchtowerCells = useMemo(
+    () => [...watchtowerCells[1], ...watchtowerCells[2]],
+    [watchtowerCells]
+  );
   const threatCells = useMemo(() => {
     const myAugIds = ownedAugments[currentPlayer].map((a) => a.id);
     if (!myAugIds.includes("threatRadar")) return [];
-    const opponentAugIds = ownedAugments[opponent].map((a) => a.id);
+    const totalStonesPlaced = stonesPlaced[1] + stonesPlaced[2];
+    const opponentAugIds = getEffectiveAugmentIds(ownedAugments[opponent].map((a) => a.id), totalStonesPlaced);
     return findThreatCells(board, opponent, opponentAugIds, lastMove[opponent]);
-  }, [board, ownedAugments, currentPlayer, opponent, lastMove]);
+  }, [board, ownedAugments, currentPlayer, opponent, lastMove, stonesPlaced]);
 
   // 렌주룰 금수는 흑돌 차례에만 의미 있음
   const forbiddenCells = useMemo(() => {
     if (currentPlayer !== 1) return [];
-    return findForbiddenCells(board, ownedAugments[1].map((a) => a.id), lastMove[1]);
-  }, [board, ownedAugments, currentPlayer, lastMove]);
+    const ownedIds = getEffectiveAugmentIds(ownedAugments[1].map((a) => a.id), stonesPlaced[1] + stonesPlaced[2]);
+    return findForbiddenCells(board, ownedIds, lastMove[1]);
+  }, [board, ownedAugments, currentPlayer, lastMove, stonesPlaced]);
 
   function handleBoardClick(x, y) {
     if (pendingTarget) {
@@ -90,6 +99,7 @@ export default function LocalGamePage() {
           blockedCells={boardBlockedCells}
           forbiddenCells={forbiddenCells}
           threatCells={threatCells}
+          watchtowerCells={boardWatchtowerCells}
         />
         <AugmentPanel
           title="⚪ 백돌 증강체"

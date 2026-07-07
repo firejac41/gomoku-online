@@ -10,8 +10,16 @@ const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 
 // 15x15 오목판을 캔버스에 그리고, 클릭 좌표를 격자 좌표로 바꿔 onCellClick(x, y)로 알려줌
 // blockedCells: 증강체로 못 놓는 칸, forbiddenCells: 렌주룰 금수 칸 (둘 다 빨간 X 표시)
-// threatCells: 위험 감지로 강조할 칸(빨간 테두리)
-export default function GomokuBoard({ board, onCellClick, disabled, blockedCells = [], forbiddenCells = [], threatCells = [] }) {
+// threatCells: 위험 감지로 강조할 칸(빨간 테두리), watchtowerCells: 감시탑이 세워진 칸(주황 다이아몬드 - 둘 다에게 보임)
+export default function GomokuBoard({
+  board,
+  onCellClick,
+  disabled,
+  blockedCells = [],
+  forbiddenCells = [],
+  threatCells = [],
+  watchtowerCells = [],
+}) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -61,6 +69,22 @@ export default function GomokuBoard({ board, onCellClick, disabled, blockedCells
       ctx.stroke();
     }
 
+    // 감시탑: 여기에 두면 무효화되는 칸 - 주황 다이아몬드로 표시 (숨김 없이 양쪽 다 보임)
+    ctx.strokeStyle = "#f39c12";
+    ctx.lineWidth = 2;
+    for (const { x, y } of watchtowerCells) {
+      const cx = PADDING + x * CELL;
+      const cy = PADDING + y * CELL;
+      const half = CELL * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - half);
+      ctx.lineTo(cx + half, cy);
+      ctx.lineTo(cx, cy + half);
+      ctx.lineTo(cx - half, cy);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
     // 돌
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
@@ -78,7 +102,7 @@ export default function GomokuBoard({ board, onCellClick, disabled, blockedCells
         }
       }
     }
-  }, [board, blockedCells, forbiddenCells, threatCells]);
+  }, [board, blockedCells, forbiddenCells, threatCells, watchtowerCells]);
 
   function handleClick(e) {
     if (disabled) return;

@@ -8,6 +8,13 @@ const ACTIVE_ABILITIES = {
   removeStone: "상대 돌 제거",
   undo: "상대 마지막 수 무르기",
   selfUndo: "내 마지막 수 무르기",
+  coinFlip: "동전 던지기",
+  bind: "상대 턴 스킵",
+  stinginess: "상대 드래프트 줄이기",
+  barter: "거래하기",
+  watchtower: "감시탑 설치",
+  ultimatum: "최후통첩 선언",
+  leverage: "저울질 사용",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
