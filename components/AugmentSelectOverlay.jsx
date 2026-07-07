@@ -22,11 +22,12 @@ export function ShapeDiagram({ shape, gridSize }) {
 // 4턴마다 뜨는 증강 선택 화면. 카드마다 개별로 1회씩 리롤 가능.
 // 눈 아이콘을 누르고 있는 동안은 카드가 흐려지고 뒤에 있는 보드가 보임 (지금 판 상황을 보고 결정할 수 있게)
 // 도박 증강의 실버3/프리즘1 양자택일 화면일 때는 isGamble=true로 리롤 버튼 없이 렌더링
-export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices, rerolledSlots, onPick, onRerollSlot, isGamble }) {
+export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices, rerolledSlots, onPick, onRerollSlot, isGamble, bonusRerollsRemaining }) {
   const [peeking, setPeeking] = useState(false);
 
   const startPeek = () => setPeeking(true);
   const endPeek = () => setPeeking(false);
+  const hasBonusRerolls = !isGamble && bonusRerollsRemaining > 0;
 
   return (
     <div className={"augmentSelectOverlay" + (peeking ? " peeking" : "")}>
@@ -43,33 +44,38 @@ export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices,
       </button>
       <div className="augmentSelectContent">
         <h2>{isGamble ? "도박 결과를 선택하세요!" : playerLabel + " 증강 선택! (" + stoneCount + "수 달성)"}</h2>
+        {hasBonusRerolls && <div className="bonusRerollNotice">🎲 축적 보너스 리롤 {bonusRerollsRemaining}회 남음</div>}
         <div className="augmentSelectCards">
-          {choices.map((augment, index) => (
-            <div
-              key={augment.id + "-" + index}
-              className={"augmentCard tier-" + augment.tier}
-              style={{ animationDelay: index * 0.12 + "s" }}
-            >
-              <div className="cardBody" onClick={() => onPick(augment)}>
-                <div className="cardTier">{TIER_LABEL[augment.tier]}</div>
-                <div className="cardName">{augment.name}</div>
-                <div className="cardDesc">{augment.desc}</div>
-                {augment.shape && <ShapeDiagram shape={augment.shape} gridSize={augment.shapeGrid} />}
+          {choices.map((augment, index) => {
+            const usedNormalReroll = rerolledSlots[index];
+            const canReroll = !usedNormalReroll || hasBonusRerolls;
+            return (
+              <div
+                key={augment.id + "-" + index}
+                className={"augmentCard tier-" + augment.tier}
+                style={{ animationDelay: index * 0.12 + "s" }}
+              >
+                <div className="cardBody" onClick={() => onPick(augment)}>
+                  <div className="cardTier">{TIER_LABEL[augment.tier]}</div>
+                  <div className="cardName">{augment.name}</div>
+                  <div className="cardDesc">{augment.desc}</div>
+                  {augment.shape && <ShapeDiagram shape={augment.shape} gridSize={augment.shapeGrid} />}
+                </div>
+                {!isGamble && (
+                  <button
+                    className="cardRerollButton"
+                    disabled={!canReroll}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRerollSlot(index);
+                    }}
+                  >
+                    {!canReroll ? "리롤 완료" : usedNormalReroll ? "🎲 보너스 리롤" : "🎲 이 카드만 리롤"}
+                  </button>
+                )}
               </div>
-              {!isGamble && (
-                <button
-                  className="cardRerollButton"
-                  disabled={rerolledSlots[index]}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRerollSlot(index);
-                  }}
-                >
-                  {rerolledSlots[index] ? "리롤 완료" : "🎲 이 카드만 리롤"}
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

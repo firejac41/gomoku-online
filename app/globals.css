@@ -221,6 +221,11 @@ body {
 .augmentSelectOverlay h2 {
   animation: draftTitlePop 0.45s cubic-bezier(.34, 1.56, .64, 1) both;
 }
+.bonusRerollNotice {
+  font-size: 13px;
+  color: #f5a623;
+  margin-top: -12px;
+}
 .augmentSelectCards {
   display: flex;
   gap: 20px;
