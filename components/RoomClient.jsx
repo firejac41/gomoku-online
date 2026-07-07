@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
-import { findThreatCells, findForbiddenCells } from "@/lib/gomokuEngine";
+import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
 import DraftOverlay from "@/components/DraftOverlay";
@@ -14,6 +14,8 @@ const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
   permaBlock: "빈 칸 1곳을 선택하세요",
   removeStone: "제거할 상대 돌을 선택하세요",
+  watchtower: "감시탑을 세울 빈 칸을 선택하세요",
+  ultimatum: "최후통첩으로 선언할 빈 칸을 선택하세요",
 };
 
 // 방에 아직 아무도 흑/백을 안 맡았으면 선점, 이미 있으면 남은 자리 선점, 둘 다 찼으면 관전
@@ -187,14 +189,18 @@ export default function RoomClient({ roomId }) {
     if (!gameState || opponentRole === null || gameState.currentPlayer !== myRole) return [];
     const myAugIds = gameState.ownedAugments[myRole].map((a) => a.id);
     if (!myAugIds.includes("threatRadar")) return [];
-    const opponentAugIds = gameState.ownedAugments[opponentRole].map((a) => a.id);
+    const totalStonesPlaced = gameState.stonesPlaced[1] + gameState.stonesPlaced[2];
+    const opponentAugIds = getEffectiveAugmentIds(gameState.ownedAugments[opponentRole].map((a) => a.id), totalStonesPlaced);
     return findThreatCells(gameState.board, opponentRole, opponentAugIds, gameState.lastMove[opponentRole]);
   }, [gameState, myRole, opponentRole]);
 
   // 렌주룰 금수는 흑돌 차례에만 의미 있고, 흑돌 본인 화면에만 표시
   const forbiddenCells = useMemo(() => {
     if (!gameState || myRole !== 1 || gameState.currentPlayer !== 1) return [];
-    const ownedIds = gameState.ownedAugments[1].map((a) => a.id);
+    const ownedIds = getEffectiveAugmentIds(
+      gameState.ownedAugments[1].map((a) => a.id),
+      gameState.stonesPlaced[1] + gameState.stonesPlaced[2]
+    );
     return findForbiddenCells(gameState.board, ownedIds, gameState.lastMove[1]);
   }, [gameState, myRole]);
 
@@ -213,13 +219,15 @@ export default function RoomClient({ roomId }) {
 
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
-    draft, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells,
+    draft, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
   } = gameState;
   const roleLabel = myRole === 1 ? "흑돌" : myRole === 2 ? "백돌" : "관전";
   const waitingForOpponent = !roomMeta.black_claimed || !roomMeta.white_claimed;
   const boardBlockedCells = myRole === 1 || myRole === 2
     ? [...blockedCells[myRole], ...permaBlockedCells[myRole]]
     : [];
+  // 감시탑은 숨김이 없어서 누구든 양쪽에 세워진 걸 다 보여줌
+  const boardWatchtowerCells = [...watchtowerCells[1], ...watchtowerCells[2]];
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center text-center gap-2 py-8">
@@ -259,6 +267,7 @@ export default function RoomClient({ roomId }) {
           blockedCells={boardBlockedCells}
           forbiddenCells={forbiddenCells}
           threatCells={threatCells}
+          watchtowerCells={boardWatchtowerCells}
         />
         <AugmentPanel
           title="⚪ 백돌 증강체"
