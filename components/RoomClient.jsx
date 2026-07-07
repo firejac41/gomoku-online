@@ -163,9 +163,12 @@ export default function RoomClient({ roomId }) {
     const newState = gameReducer(current, action);
     if (newState === current) return;
 
+    // 안내 메시지(먼저 보기/동전 던지기/거래 등)는 실제 상태 변화 여부와 무관하게 나한테만 로컬로 띄움
+    // (gameState.forbiddenMessage는 서버에 올라가도 상대 화면에서는 안 쓰이니 상대에게 새어나가지 않음)
+    if (newState.forbiddenMessage) flashForbidden(newState.forbiddenMessage);
+
     if (!hasRealChange(current, newState)) {
       // 렌주룰 금수 안내처럼 나한테만 보이면 되는 변화는 서버에 안 올림
-      if (newState.forbiddenMessage) flashForbidden(newState.forbiddenMessage);
       return;
     }
 
