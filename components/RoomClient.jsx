@@ -5,7 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
 import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
-import { playStoneSound, countTotalStones } from "@/lib/sound";
+import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
 import DraftOverlay from "@/components/DraftOverlay";
@@ -67,6 +67,7 @@ export default function RoomClient({ roomId }) {
   const gameStateRef = useRef(null);
   const forbiddenTimer = useRef(null);
   const prevStoneCountRef = useRef(null);
+  const hadDraftRef = useRef(false);
 
   useEffect(() => {
     gameStateRef.current = gameState;
@@ -80,6 +81,15 @@ export default function RoomClient({ roomId }) {
       playStoneSound();
     }
     prevStoneCountRef.current = count;
+  }, [gameState]);
+
+  // 드래프트 카드가 새로 뜨는 순간(null -> 카드 목록)에만 증강 등장음 재생. 리롤로 카드가 바뀔 때는 다시 안 울림. 양쪽 클라이언트 다 들림
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.draft && !hadDraftRef.current) {
+      playAugmentSound();
+    }
+    hadDraftRef.current = !!gameState.draft;
   }, [gameState]);
 
   useEffect(() => {

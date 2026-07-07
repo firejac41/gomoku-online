@@ -8,7 +8,7 @@ import DraftOverlay from "@/components/DraftOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
 import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
-import { playStoneSound, countTotalStones } from "@/lib/sound";
+import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 
 const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
@@ -44,6 +44,15 @@ export default function LocalGamePage() {
     }
     prevStoneCountRef.current = count;
   }, [board]);
+
+  // 드래프트 카드가 새로 뜨는 순간(null -> 카드 목록)에만 증강 등장음 재생. 리롤로 카드가 바뀔 때는 다시 안 울림
+  const hadDraftRef = useRef(false);
+  useEffect(() => {
+    if (draft && !hadDraftRef.current) {
+      playAugmentSound();
+    }
+    hadDraftRef.current = !!draft;
+  }, [draft]);
 
   const opponent = currentPlayer === 1 ? 2 : 1;
   const boardBlockedCells = useMemo(
