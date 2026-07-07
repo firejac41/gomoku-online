@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import { gameReducer, initialGameState } from "@/lib/gameReducer";
+import { gameReducer } from "@/lib/gameReducer";
 import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 import GomokuBoard from "@/components/GomokuBoard";
@@ -211,9 +211,9 @@ export default function RoomClient({ roomId }) {
     dispatchAction({ type: "USE_ABILITY", player, ability });
   }
 
-  function handleRestart() {
-    if (myRole !== 1 && myRole !== 2) return;
-    pushState(initialGameState());
+  function handleRequestRematch(player) {
+    if (myRole !== player) return;
+    dispatchAction({ type: "REQUEST_REMATCH", player });
   }
 
   const opponentRole = myRole === 1 ? 2 : myRole === 2 ? 1 : null;
@@ -262,10 +262,13 @@ export default function RoomClient({ roomId }) {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
-    deadCells, prisonActive,
+    deadCells, prisonActive, lastMove, rematchRequested,
   } = gameState;
   const roleLabel = myRole === 1 ? "흑돌" : myRole === 2 ? "백돌" : "관전";
   const waitingForOpponent = !roomMeta.black_claimed || !roomMeta.white_claimed;
+
+  // 마지막으로 놓인 수 표시 - 지금 차례가 아닌 쪽이 방금 둔 사람이라 그쪽의 lastMove를 보여주면 됨 (관전자도 동일)
+  const lastOpponentMoveCell = lastMove[currentPlayer === 1 ? 2 : 1];
 
   // 진하게: 나를 실제로 막는 칸(역병으로 죽은 칸도 포함, 양쪽 다 막힘) / 흐리게: 내가 상대에게 건 금지라 나는 상관없는 칸
   const boardBlockedCells = myRole === 1 || myRole === 2
@@ -339,6 +342,7 @@ export default function RoomClient({ roomId }) {
           watchtowerCells={boardWatchtowerCells}
           threatCells={threatCells}
           winCells={winCells}
+          lastOpponentMoveCell={lastOpponentMoveCell}
         />
         <AugmentPanel
           title="⚪ 백돌 증강체"
@@ -352,7 +356,14 @@ export default function RoomClient({ roomId }) {
 
       <Link href="/" className="text-sm underline opacity-70 mt-4">← 처음으로</Link>
 
-      {gameOver && <WinOverlay message={winMessage} onRestart={handleRestart} />}
+      {gameOver && (
+        <WinOverlay
+          message={winMessage}
+          rematchRequested={rematchRequested}
+          onRequestRematch={handleRequestRematch}
+          myRole={myRole}
+        />
+      )}
 
       {isMyAugmentSelect && (
         <AugmentSelectOverlay

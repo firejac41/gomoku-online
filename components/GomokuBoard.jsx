@@ -13,6 +13,7 @@ const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 // forbiddenCells: 렌주룰 금수 칸(진한 X), pendingCells: 금지구역 등 여러 칸 선택 중 이미 고른 칸(주황 테두리)
 // watchtowerCells: 감시탑이 세워진 칸(주황 다이아몬드 - 숨김 없이 둘 다에게 보임), threatCells: 위험 감지로 강조할 칸(빨간 테두리)
 // winCells: 직감으로 강조할, 지금 두면 바로 이기는 내 칸(초록 테두리)
+// lastOpponentMoveCell: 상대가 마지막으로 둔 자리(빨간 사각 테두리) - 지금 판이 어디서 바뀌었는지 한눈에 보이게
 export default function GomokuBoard({
   board,
   onCellClick,
@@ -24,6 +25,7 @@ export default function GomokuBoard({
   watchtowerCells = [],
   threatCells = [],
   winCells = [],
+  lastOpponentMoveCell = null,
 }) {
   const canvasRef = useRef(null);
 
@@ -97,6 +99,16 @@ export default function GomokuBoard({
       ctx.stroke();
     }
 
+    // 상대의 마지막 수: 빨간 사각 테두리로 표시
+    if (lastOpponentMoveCell) {
+      const cx = PADDING + lastOpponentMoveCell.x * CELL;
+      const cy = PADDING + lastOpponentMoveCell.y * CELL;
+      const half = STONE_RADIUS + 3;
+      ctx.strokeStyle = "#ff3b3b";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx - half, cy - half, half * 2, half * 2);
+    }
+
     // 감시탑: 여기에 두면 무효화되는 칸 - 주황 다이아몬드로 표시 (숨김 없이 양쪽 다 보임)
     ctx.strokeStyle = "#f39c12";
     ctx.lineWidth = 2;
@@ -141,7 +153,7 @@ export default function GomokuBoard({
         }
       }
     }
-  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatCells, winCells]);
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatCells, winCells, lastOpponentMoveCell]);
 
   function handleClick(e) {
     if (disabled) return;

@@ -30,7 +30,7 @@ export default function LocalGamePage() {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
-    blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive,
+    blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
   } = state;
 
   // 금수/안내 메시지를 1.5초 후 자동으로 지움
@@ -101,6 +101,9 @@ export default function LocalGamePage() {
     return findThreatCells(board, currentPlayer, myEffectiveAugIds, lastMove[currentPlayer]);
   }, [board, ownedAugments, currentPlayer, lastMove, stonesPlaced]);
 
+  // 마지막으로 놓인 수 표시 - 지금 차례가 아닌 쪽이 방금 둔 사람
+  const lastOpponentMoveCell = lastMove[opponent];
+
   // 렌주룰 금수는 흑돌 차례에만 의미 있음
   const forbiddenCells = useMemo(() => {
     if (currentPlayer !== 1) return [];
@@ -157,6 +160,7 @@ export default function LocalGamePage() {
           watchtowerCells={boardWatchtowerCells}
           threatCells={threatCells}
           winCells={winCells}
+          lastOpponentMoveCell={lastOpponentMoveCell}
         />
         <AugmentPanel
           title="⚪ 백돌 증강체"
@@ -170,7 +174,14 @@ export default function LocalGamePage() {
 
       <Link href="/" className="text-sm underline opacity-70 mt-4">← 처음으로</Link>
 
-      {gameOver && <WinOverlay message={winMessage} onRestart={() => dispatch({ type: "RESTART" })} />}
+      {gameOver && (
+        <WinOverlay
+          message={winMessage}
+          rematchRequested={rematchRequested}
+          onRequestRematch={(player) => dispatch({ type: "REQUEST_REMATCH", player })}
+          myRole={null}
+        />
+      )}
 
       {augmentSelect && (
         <AugmentSelectOverlay
