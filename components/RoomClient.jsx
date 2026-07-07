@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { gameReducer } from "@/lib/gameReducer";
-import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
+import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds, getRingBounds } from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
@@ -262,8 +262,9 @@ export default function RoomClient({ roomId }) {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
-    deadCells, prisonActive, lastMove, rematchRequested,
+    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive,
   } = gameState;
+  const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]);
   const roleLabel = myRole === 1 ? "흑돌" : myRole === 2 ? "백돌" : "관전";
   const waitingForOpponent = !roomMeta.black_claimed || !roomMeta.white_claimed;
 
@@ -313,7 +314,20 @@ export default function RoomClient({ roomId }) {
         </div>
       )}
 
+      {ringActive && (
+        <div className="text-sm bg-[#3a2a0f] rounded-md px-3 py-2 max-w-sm">
+          🥊 '링 위에서 싸우자' 발동 중 - 판이 서서히 좁아지고 있어요
+        </div>
+      )}
+
+      {chaosActive && (
+        <div className="text-sm bg-[#3a0f2a] rounded-md px-3 py-2 max-w-sm">
+          🌀 '폭주' 발동 중 - 양쪽 다 조작권을 잃고 무작위로 돌을 둬요
+        </div>
+      )}
+
       <div className="text-lg mb-1">{gameOver ? "" : (currentPlayer === 1 ? "흑돌 차례" : "백돌 차례")}</div>
+      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수</div>
       {pendingTarget && (
         <div className="pendingTargetBanner">
           {(pendingTarget.player === 1 ? "흑돌" : "백돌")}: {pendingTarget.kind === "relocate" ? relocateHint(pendingTarget) : TARGET_HINT[pendingTarget.kind]}
@@ -324,9 +338,9 @@ export default function RoomClient({ roomId }) {
 
       <div className="gameLayout">
         <AugmentPanel
-          title="⚫ 흑돌 증강체"
+          title="⚫ 흑돌 증강"
           augments={ownedAugments[1]}
-          canAct={!augmentSelect && !pendingTarget && !gameOver && currentPlayer === 1 && myRole === 1}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 1 && myRole === 1}
           usedMap={oneTimeUsed[1]}
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
@@ -343,11 +357,12 @@ export default function RoomClient({ roomId }) {
           threatCells={threatCells}
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
+          ringBounds={ringBounds}
         />
         <AugmentPanel
-          title="⚪ 백돌 증강체"
+          title="⚪ 백돌 증강"
           augments={ownedAugments[2]}
-          canAct={!augmentSelect && !pendingTarget && !gameOver && currentPlayer === 2 && myRole === 2}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 2 && myRole === 2}
           usedMap={oneTimeUsed[2]}
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"

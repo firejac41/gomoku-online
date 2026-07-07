@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "증강 오목",
-  description: "렌주룰 + 증강체 오목 게임",
+  description: "렌주룰 + 증강 오목 게임",
 };
 
 export default function RootLayout({ children }) {

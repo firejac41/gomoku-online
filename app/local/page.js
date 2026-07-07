@@ -7,7 +7,7 @@ import AugmentPanel from "@/components/AugmentPanel";
 import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
-import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds } from "@/lib/gomokuEngine";
+import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds, getRingBounds } from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 
 const TARGET_HINT = {
@@ -31,7 +31,13 @@ export default function LocalGamePage() {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
+    ringActive, ringStartMove, chaosActive,
   } = state;
+
+  const ringBounds = useMemo(
+    () => getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]),
+    [ringStartMove, stonesPlaced]
+  );
 
   // 금수/안내 메시지를 1.5초 후 자동으로 지움
   useEffect(() => {
@@ -131,7 +137,18 @@ export default function LocalGamePage() {
           🔒 '교도소' 발동 중 - 양쪽 모두 프리즘 효과가 비활성화됐어요
         </div>
       )}
+      {ringActive && (
+        <div className="text-sm bg-[#3a2a0f] rounded-md px-3 py-2 max-w-sm">
+          🥊 '링 위에서 싸우자' 발동 중 - 판이 서서히 좁아지고 있어요
+        </div>
+      )}
+      {chaosActive && (
+        <div className="text-sm bg-[#3a0f2a] rounded-md px-3 py-2 max-w-sm">
+          🌀 '폭주' 발동 중 - 양쪽 다 조작권을 잃고 무작위로 돌을 둬요
+        </div>
+      )}
       <div className="text-lg mb-1">{gameOver ? "" : (currentPlayer === 1 ? "흑돌 차례" : "백돌 차례")}</div>
+      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수</div>
       {pendingTarget && (
         <div className="pendingTargetBanner">
           {(pendingTarget.player === 1 ? "흑돌" : "백돌")}: {pendingTarget.kind === "relocate" ? relocateHint(pendingTarget) : TARGET_HINT[pendingTarget.kind]}
@@ -142,9 +159,9 @@ export default function LocalGamePage() {
 
       <div className="gameLayout">
         <AugmentPanel
-          title="⚫ 흑돌 증강체"
+          title="⚫ 흑돌 증강"
           augments={ownedAugments[1]}
-          canAct={!augmentSelect && !pendingTarget && !gameOver && currentPlayer === 1}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 1}
           usedMap={oneTimeUsed[1]}
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
@@ -161,11 +178,12 @@ export default function LocalGamePage() {
           threatCells={threatCells}
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
+          ringBounds={ringBounds}
         />
         <AugmentPanel
-          title="⚪ 백돌 증강체"
+          title="⚪ 백돌 증강"
           augments={ownedAugments[2]}
-          canAct={!augmentSelect && !pendingTarget && !gameOver && currentPlayer === 2}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 2}
           usedMap={oneTimeUsed[2]}
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"

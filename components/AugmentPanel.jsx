@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ShapeDiagram } from "@/components/AugmentSelectOverlay";
 
-// 직접 "사용" 버튼으로 발동시키는 증강체들 (그 외는 상시 적용되는 패시브 효과라 버튼 없음)
+// 직접 "사용" 버튼으로 발동시키는 증강들 (그 외는 상시 적용되는 패시브 효과라 버튼 없음)
 const ACTIVE_ABILITIES = {
   doubleMove: "이번 턴 2개 놓기",
   removeStone: "상대 돌 제거 (사용하면 턴 넘어감)",
@@ -25,6 +25,7 @@ const ACTIVE_ABILITIES = {
   collapse: "3x3 구역 붕괴 (사용하면 턴 넘어감)",
   oracle: "다음 회차 프리즘 확정",
   boardFlip: "내 돌 전부 재배치 (사용하면 턴 넘어감)",
+  wipeout: "판 위 돌 전부 지우기 (사용하면 턴 넘어감)",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함

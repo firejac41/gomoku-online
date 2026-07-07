@@ -14,6 +14,7 @@ const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 // watchtowerCells: 감시탑이 세워진 칸(주황 다이아몬드 - 숨김 없이 둘 다에게 보임), threatCells: 위험 감지로 강조할 칸(빨간 테두리)
 // winCells: 직감으로 강조할, 지금 두면 바로 이기는 내 칸(초록 테두리)
 // lastOpponentMoveCell: 상대가 마지막으로 둔 자리(빨간 사각 테두리) - 지금 판이 어디서 바뀌었는지 한눈에 보이게
+// ringBounds: 링 위에서 싸우자로 좁혀 들어간 안쪽 범위 {minX,maxX,minY,maxY} - 바깥쪽을 어둡게 덮어서 표시
 export default function GomokuBoard({
   board,
   onCellClick,
@@ -26,6 +27,7 @@ export default function GomokuBoard({
   threatCells = [],
   winCells = [],
   lastOpponentMoveCell = null,
+  ringBounds = null,
 }) {
   const canvasRef = useRef(null);
 
@@ -47,6 +49,22 @@ export default function GomokuBoard({
       ctx.moveTo(pos, PADDING);
       ctx.lineTo(pos, PADDING + (BOARD_SIZE - 1) * CELL);
       ctx.stroke();
+    }
+
+    // 링 위에서 싸우자: 좁혀 들어간 바깥 범위를 어둡게 덮고, 안쪽 경계는 주황 테두리로 표시
+    if (ringBounds) {
+      const left = PADDING + (ringBounds.minX - 0.5) * CELL;
+      const right = PADDING + (ringBounds.maxX + 0.5) * CELL;
+      const top = PADDING + (ringBounds.minY - 0.5) * CELL;
+      const bottom = PADDING + (ringBounds.maxY + 0.5) * CELL;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+      ctx.fillRect(0, 0, CANVAS_SIZE, top);
+      ctx.fillRect(0, bottom, CANVAS_SIZE, CANVAS_SIZE - bottom);
+      ctx.fillRect(0, top, left, bottom - top);
+      ctx.fillRect(right, top, CANVAS_SIZE - right, bottom - top);
+      ctx.strokeStyle = "#ff9800";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(left, top, right - left, bottom - top);
     }
 
     function drawX(x, y) {
@@ -153,7 +171,7 @@ export default function GomokuBoard({
         }
       }
     }
-  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatCells, winCells, lastOpponentMoveCell]);
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatCells, winCells, lastOpponentMoveCell, ringBounds]);
 
   function handleClick(e) {
     if (disabled) return;
