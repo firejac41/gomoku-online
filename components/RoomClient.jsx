@@ -262,7 +262,7 @@ export default function RoomClient({ roomId }) {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
-    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive,
+    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive, peekedCard, ultimatumCell,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]);
   const roleLabel = myRole === 1 ? "흑돌" : myRole === 2 ? "백돌" : "관전";
@@ -327,7 +327,7 @@ export default function RoomClient({ roomId }) {
       )}
 
       <div className="text-lg mb-1">{gameOver ? "" : (currentPlayer === 1 ? "흑돌 차례" : "백돌 차례")}</div>
-      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수</div>
+      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수 (흑 {stonesPlaced[1]} · 백 {stonesPlaced[2]})</div>
       {pendingTarget && (
         <div className="pendingTargetBanner">
           {(pendingTarget.player === 1 ? "흑돌" : "백돌")}: {pendingTarget.kind === "relocate" ? relocateHint(pendingTarget) : TARGET_HINT[pendingTarget.kind]}
@@ -344,6 +344,7 @@ export default function RoomClient({ roomId }) {
           usedMap={oneTimeUsed[1]}
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
+          peekedCard={myRole === 1 ? peekedCard[1] : null}
         />
         <GomokuBoard
           board={board}
@@ -358,6 +359,7 @@ export default function RoomClient({ roomId }) {
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
           ringBounds={ringBounds}
+          ultimatumCell={myRole === 1 || myRole === 2 ? ultimatumCell[myRole] : null}
         />
         <AugmentPanel
           title="⚪ 백돌 증강"
@@ -366,6 +368,7 @@ export default function RoomClient({ roomId }) {
           usedMap={oneTimeUsed[2]}
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"
+          peekedCard={myRole === 2 ? peekedCard[2] : null}
         />
       </div>
 

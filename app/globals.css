@@ -155,6 +155,11 @@ body {
   color: #6a8caf;
   margin-bottom: 8px;
 }
+.peekedCardNote {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #f5a623;
+}
 
 .tier-silver { background: #6b6b6b; }
 .tier-gold { background: #8a6a1a; }

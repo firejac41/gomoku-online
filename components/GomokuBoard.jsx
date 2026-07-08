@@ -15,6 +15,7 @@ const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 // winCells: 직감으로 강조할, 지금 두면 바로 이기는 내 칸(초록 테두리)
 // lastOpponentMoveCell: 상대가 마지막으로 둔 자리(빨간 사각 테두리) - 지금 판이 어디서 바뀌었는지 한눈에 보이게
 // ringBounds: 링 위에서 싸우자로 좁혀 들어간 안쪽 범위 {minX,maxX,minY,maxY} - 바깥쪽을 어둡게 덮어서 표시
+// ultimatumCell: 내가 선언한 최후통첩 칸(보라 사각 점선 - 나에게만 보임), fadedUltimatumCell: 상대가 선언한 칸(로컬 모드에서만 흐리게 표시)
 export default function GomokuBoard({
   board,
   onCellClick,
@@ -28,6 +29,8 @@ export default function GomokuBoard({
   winCells = [],
   lastOpponentMoveCell = null,
   ringBounds = null,
+  ultimatumCell = null,
+  fadedUltimatumCell = null,
 }) {
   const canvasRef = useRef(null);
 
@@ -143,6 +146,25 @@ export default function GomokuBoard({
       ctx.stroke();
     }
 
+    // 최후통첩: 내가 선언한 칸 - 보라 점선 사각형으로 나에게만 표시
+    function drawUltimatumMark(x, y) {
+      const cx = PADDING + x * CELL;
+      const cy = PADDING + y * CELL;
+      const half = STONE_RADIUS + 2;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(cx - half, cy - half, half * 2, half * 2);
+      ctx.setLineDash([]);
+    }
+    ctx.strokeStyle = "#9b59b6";
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 1;
+    if (ultimatumCell) drawUltimatumMark(ultimatumCell.x, ultimatumCell.y);
+    if (fadedUltimatumCell) {
+      ctx.globalAlpha = 0.32;
+      drawUltimatumMark(fadedUltimatumCell.x, fadedUltimatumCell.y);
+      ctx.globalAlpha = 1;
+    }
+
     // 금지구역 등 여러 칸을 고르는 중일 때, 이미 고른 칸 표시
     for (const { x, y } of pendingCells) {
       const cx = PADDING + x * CELL;
@@ -171,7 +193,7 @@ export default function GomokuBoard({
         }
       }
     }
-  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatCells, winCells, lastOpponentMoveCell, ringBounds]);
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatCells, winCells, lastOpponentMoveCell, ringBounds, ultimatumCell, fadedUltimatumCell]);
 
   function handleClick(e) {
     if (disabled) return;

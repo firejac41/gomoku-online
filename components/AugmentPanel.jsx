@@ -29,7 +29,8 @@ const ACTIVE_ABILITIES = {
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
-export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAbility, side = "left" }) {
+// peekedCard: 먼저 보기로 예약해 둔 카드 - 안내 메시지가 금방 사라져서 놓치기 쉬우니 여기 계속 표시해 둠
+export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAbility, side = "left", peekedCard = null }) {
   const [openIndex, setOpenIndex] = useState(null);
 
   // 터치/클릭으로 연 툴팁은 다른 곳을 터치하면 닫힘
@@ -61,6 +62,9 @@ export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAb
               }}
             >
               <div>{augment.name}</div>
+              {augment.id === "peek" && peekedCard && (
+                <div className="peekedCardNote">예약된 카드: '{peekedCard.name}'</div>
+              )}
               {abilityLabel && (
                 <button
                   className="abilityButton"

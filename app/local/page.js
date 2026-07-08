@@ -31,7 +31,7 @@ export default function LocalGamePage() {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
-    ringActive, ringStartMove, chaosActive,
+    ringActive, ringStartMove, chaosActive, peekedCard, ultimatumCell,
   } = state;
 
   const ringBounds = useMemo(
@@ -148,7 +148,7 @@ export default function LocalGamePage() {
         </div>
       )}
       <div className="text-lg mb-1">{gameOver ? "" : (currentPlayer === 1 ? "흑돌 차례" : "백돌 차례")}</div>
-      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수</div>
+      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수 (흑 {stonesPlaced[1]} · 백 {stonesPlaced[2]})</div>
       {pendingTarget && (
         <div className="pendingTargetBanner">
           {(pendingTarget.player === 1 ? "흑돌" : "백돌")}: {pendingTarget.kind === "relocate" ? relocateHint(pendingTarget) : TARGET_HINT[pendingTarget.kind]}
@@ -165,6 +165,7 @@ export default function LocalGamePage() {
           usedMap={oneTimeUsed[1]}
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
+          peekedCard={peekedCard[1]}
         />
         <GomokuBoard
           board={board}
@@ -179,6 +180,8 @@ export default function LocalGamePage() {
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
           ringBounds={ringBounds}
+          ultimatumCell={ultimatumCell[currentPlayer]}
+          fadedUltimatumCell={ultimatumCell[opponent]}
         />
         <AugmentPanel
           title="⚪ 백돌 증강"
@@ -187,6 +190,7 @@ export default function LocalGamePage() {
           usedMap={oneTimeUsed[2]}
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"
+          peekedCard={peekedCard[2]}
         />
       </div>
 
