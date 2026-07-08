@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Link from "next/link";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
 import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
-import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds, getRingBounds } from "@/lib/gomokuEngine";
+import { findThreatCells, findThreatLines, findForbiddenCells, getEffectiveAugmentIds, getRingBounds, colorForPlayer, countStones } from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 
 const TARGET_HINT = {
@@ -25,14 +25,48 @@ function relocateHint(pendingTarget) {
   return pendingTarget.sourceCell ? "옮길 빈 칸을 선택하세요" : "옮길 내 돌을 선택하세요";
 }
 
+const TURN_TIME_LIMIT = 30; // 매 착수마다 주어지는 제한시간(초)
+
 export default function LocalGamePage() {
   const [state, dispatch] = useReducer(gameReducer, undefined, initialGameState);
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
-    ringActive, ringStartMove, chaosActive, peekedCard, ultimatumCell,
+    ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell,
   } = state;
+
+  // 제한시간 타이머: 착수 하나가 끝날 때마다(같은 플레이어가 이어서 두는 질풍노도/양수겹침 보너스 수 포함) 새로 30초 시작
+  const isTimerActive = !gameOver && !augmentSelect && !pendingTarget;
+  const turnKey = currentPlayer + JSON.stringify(lastMove[1]) + JSON.stringify(lastMove[2]);
+  const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
+  const timeoutFiredRef = useRef(false);
+
+  // 렌더 중에 turnKey 변화를 감지해서 타이머를 리셋 (effect 안에서 동기적으로 setState하는 대신
+  // React가 권장하는 "렌더링 중 상태 조정" 패턴 사용 - https://react.dev/learn/you-might-not-need-an-effect)
+  const prevTurnKeyRef = useRef(turnKey);
+  if (prevTurnKeyRef.current !== turnKey) {
+    prevTurnKeyRef.current = turnKey;
+    timeoutFiredRef.current = false;
+    if (timeLeft !== TURN_TIME_LIMIT) setTimeLeft(TURN_TIME_LIMIT);
+  }
+
+  useEffect(() => {
+    if (!isTimerActive) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          if (!timeoutFiredRef.current) {
+            timeoutFiredRef.current = true;
+            dispatch({ type: "TIMEOUT" });
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [turnKey, isTimerActive]);
 
   const ringBounds = useMemo(
     () => getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]),
@@ -68,6 +102,9 @@ export default function LocalGamePage() {
   }, [augmentSelect]);
 
   const opponent = currentPlayer === 1 ? 2 : 1;
+  // 입장 바꿔 생각하기: 신원(currentPlayer/opponent)과 실제로 보드에 놓이는 돌 색이 다를 수 있음
+  const currentColor = colorForPlayer(currentPlayer, roleSwapActive);
+  const opponentColor = colorForPlayer(opponent, roleSwapActive);
   const boardBlockedCells = useMemo(
     () => [...blockedCells[currentPlayer], ...permaBlockedCells[currentPlayer], ...deadCells],
     [blockedCells, permaBlockedCells, deadCells, currentPlayer]
@@ -90,13 +127,14 @@ export default function LocalGamePage() {
       : []
     : [];
 
-  const threatCells = useMemo(() => {
+  // 위험 감지: 상대가 두면 이기는 빈 칸 대신, 그 승리를 완성해줄 상대 돌들을 선으로 이어서 보여줌
+  const threatLines = useMemo(() => {
     const myAugIds = ownedAugments[currentPlayer].map((a) => a.id);
     if (!myAugIds.includes("threatRadar")) return [];
     const totalStonesPlaced = stonesPlaced[1] + stonesPlaced[2];
     const opponentAugIds = getEffectiveAugmentIds(ownedAugments[opponent].map((a) => a.id), totalStonesPlaced);
-    return findThreatCells(board, opponent, opponentAugIds, lastMove[opponent]);
-  }, [board, ownedAugments, currentPlayer, opponent, lastMove, stonesPlaced]);
+    return findThreatLines(board, opponentColor, opponentAugIds, lastMove[opponent]);
+  }, [board, ownedAugments, currentPlayer, opponent, opponentColor, lastMove, stonesPlaced]);
 
   // 직감: 지금 두면 바로 이기는 칸을 강조 표시 (findThreatCells를 나 자신 기준으로 재사용)
   const winCells = useMemo(() => {
@@ -104,18 +142,18 @@ export default function LocalGamePage() {
     if (!myAugIds.includes("intuition")) return [];
     const totalStonesPlaced = stonesPlaced[1] + stonesPlaced[2];
     const myEffectiveAugIds = getEffectiveAugmentIds(myAugIds, totalStonesPlaced);
-    return findThreatCells(board, currentPlayer, myEffectiveAugIds, lastMove[currentPlayer]);
-  }, [board, ownedAugments, currentPlayer, lastMove, stonesPlaced]);
+    return findThreatCells(board, currentColor, myEffectiveAugIds, lastMove[currentPlayer]);
+  }, [board, ownedAugments, currentPlayer, currentColor, lastMove, stonesPlaced]);
 
   // 마지막으로 놓인 수 표시 - 지금 차례가 아닌 쪽이 방금 둔 사람
   const lastOpponentMoveCell = lastMove[opponent];
 
-  // 렌주룰 금수는 흑돌 차례에만 의미 있음
+  // 렌주룰 금수는 "지금 흑돌을 두는 신원"의 차례에만 의미 있음 (입장 바꿔 생각하기로 신원 1이 아닐 수 있음)
   const forbiddenCells = useMemo(() => {
-    if (currentPlayer !== 1) return [];
-    const ownedIds = getEffectiveAugmentIds(ownedAugments[1].map((a) => a.id), stonesPlaced[1] + stonesPlaced[2]);
-    return findForbiddenCells(board, ownedIds, lastMove[1]);
-  }, [board, ownedAugments, currentPlayer, lastMove, stonesPlaced]);
+    if (currentColor !== 1) return [];
+    const ownedIds = getEffectiveAugmentIds(ownedAugments[currentPlayer].map((a) => a.id), stonesPlaced[1] + stonesPlaced[2]);
+    return findForbiddenCells(board, ownedIds, lastMove[currentPlayer]);
+  }, [board, ownedAugments, currentPlayer, currentColor, lastMove, stonesPlaced]);
 
   function handleBoardClick(x, y) {
     if (pendingTarget) {
@@ -147,11 +185,19 @@ export default function LocalGamePage() {
           🌀 '폭주' 발동 중 - 양쪽 다 조작권을 잃고 무작위로 돌을 둬요
         </div>
       )}
-      <div className="text-lg mb-1">{gameOver ? "" : (currentPlayer === 1 ? "흑돌 차례" : "백돌 차례")}</div>
-      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수 (흑 {stonesPlaced[1]} · 백 {stonesPlaced[2]})</div>
+      {roleSwapActive && (
+        <div className="text-sm bg-[#0f2a3a] rounded-md px-3 py-2 max-w-sm">
+          🔄 '입장 바꿔 생각하기' 발동 중 - 서로 담당하는 돌 색이 뒤바뀌었어요
+        </div>
+      )}
+      <div className="text-lg mb-1">{gameOver ? "" : (currentColor === 1 ? "흑돌 차례" : "백돌 차례")}</div>
+      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수 (흑 {countStones(board, 1)} · 백 {countStones(board, 2)})</div>
+      {isTimerActive && (
+        <div className={"text-sm " + (timeLeft <= 10 ? "text-red-400" : "opacity-70")}>⏱ 남은 시간: {timeLeft}초</div>
+      )}
       {pendingTarget && (
         <div className="pendingTargetBanner">
-          {(pendingTarget.player === 1 ? "흑돌" : "백돌")}: {pendingTarget.kind === "relocate" ? relocateHint(pendingTarget) : TARGET_HINT[pendingTarget.kind]}
+          {(colorForPlayer(pendingTarget.player, roleSwapActive) === 1 ? "흑돌" : "백돌")}: {pendingTarget.kind === "relocate" ? relocateHint(pendingTarget) : TARGET_HINT[pendingTarget.kind]}
           {pendingTarget.need > 1 ? ` (${pendingTarget.selected.length}/${pendingTarget.need})` : ""}
         </div>
       )}
@@ -159,7 +205,7 @@ export default function LocalGamePage() {
 
       <div className="gameLayout">
         <AugmentPanel
-          title="⚫ 흑돌 증강"
+          title={colorForPlayer(1, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
           augments={ownedAugments[1]}
           canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 1}
           usedMap={oneTimeUsed[1]}
@@ -176,7 +222,7 @@ export default function LocalGamePage() {
           forbiddenCells={forbiddenCells}
           pendingCells={pendingCells}
           watchtowerCells={boardWatchtowerCells}
-          threatCells={threatCells}
+          threatLines={threatLines}
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
           ringBounds={ringBounds}
@@ -184,7 +230,7 @@ export default function LocalGamePage() {
           fadedUltimatumCell={ultimatumCell[opponent]}
         />
         <AugmentPanel
-          title="⚪ 백돌 증강"
+          title={colorForPlayer(2, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
           augments={ownedAugments[2]}
           canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 2}
           usedMap={oneTimeUsed[2]}
@@ -207,7 +253,7 @@ export default function LocalGamePage() {
 
       {augmentSelect && (
         <AugmentSelectOverlay
-          playerLabel={augmentSelect.player === 1 ? "흑돌" : "백돌"}
+          playerLabel={colorForPlayer(augmentSelect.player, roleSwapActive) === 1 ? "흑돌" : "백돌"}
           stoneCount={stonesPlaced[augmentSelect.player]}
           choices={augmentSelect.choices}
           onPick={(augment) => dispatch({ type: "PICK_AUGMENT", augment })}

@@ -11,7 +11,8 @@ const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 // 15x15 오목판을 캔버스에 그리고, 클릭 좌표를 격자 좌표로 바꿔 onCellClick(x, y)로 알려줌
 // blockedCells: 나를 실제로 막는 칸(진한 X), fadedBlockedCells: 내가 상대에게 건 금지라 나는 상관없는 칸(흐린 X)
 // forbiddenCells: 렌주룰 금수 칸(진한 X), pendingCells: 금지구역 등 여러 칸 선택 중 이미 고른 칸(주황 테두리)
-// watchtowerCells: 감시탑이 세워진 칸(주황 다이아몬드 - 숨김 없이 둘 다에게 보임), threatCells: 위험 감지로 강조할 칸(빨간 테두리)
+// watchtowerCells: 감시탑이 세워진 칸(주황 다이아몬드 - 숨김 없이 둘 다에게 보임)
+// threatLines: 위험 감지로 강조할, 상대의 승리를 완성해줄 돌들을 잇는 선(빨간 선)
 // winCells: 직감으로 강조할, 지금 두면 바로 이기는 내 칸(초록 테두리)
 // lastOpponentMoveCell: 상대가 마지막으로 둔 자리(빨간 사각 테두리) - 지금 판이 어디서 바뀌었는지 한눈에 보이게
 // ringBounds: 링 위에서 싸우자로 좁혀 들어간 안쪽 범위 {minX,maxX,minY,maxY} - 바깥쪽을 어둡게 덮어서 표시
@@ -25,7 +26,7 @@ export default function GomokuBoard({
   forbiddenCells = [],
   pendingCells = [],
   watchtowerCells = [],
-  threatCells = [],
+  threatLines = [],
   winCells = [],
   lastOpponentMoveCell = null,
   ringBounds = null,
@@ -98,14 +99,18 @@ export default function GomokuBoard({
     }
     ctx.globalAlpha = 1;
 
-    // 위험 감지: 상대가 다음에 두면 이기는 칸 강조
-    for (const { x, y } of threatCells) {
-      const cx = PADDING + x * CELL;
-      const cy = PADDING + y * CELL;
+    // 위험 감지: 상대의 승리를 완성해줄 돌들을 빨간 선으로 이어서 표시 (빈 칸이 아니라 이미 놓인 돌들을 이음)
+    ctx.strokeStyle = "#ff4d4d";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    for (const { x1, y1, x2, y2 } of threatLines) {
+      const cx1 = PADDING + x1 * CELL;
+      const cy1 = PADDING + y1 * CELL;
+      const cx2 = PADDING + x2 * CELL;
+      const cy2 = PADDING + y2 * CELL;
       ctx.beginPath();
-      ctx.arc(cx, cy, STONE_RADIUS + 4, 0, Math.PI * 2);
-      ctx.strokeStyle = "#ff4d4d";
-      ctx.lineWidth = 2;
+      ctx.moveTo(cx1, cy1);
+      ctx.lineTo(cx2, cy2);
       ctx.stroke();
     }
 
@@ -193,7 +198,7 @@ export default function GomokuBoard({
         }
       }
     }
-  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatCells, winCells, lastOpponentMoveCell, ringBounds, ultimatumCell, fadedUltimatumCell]);
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ultimatumCell, fadedUltimatumCell]);
 
   function handleClick(e) {
     if (disabled) return;

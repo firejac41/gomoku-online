@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { gameReducer } from "@/lib/gameReducer";
-import { findThreatCells, findForbiddenCells, getEffectiveAugmentIds, getRingBounds } from "@/lib/gomokuEngine";
+import { findThreatCells, findThreatLines, findForbiddenCells, getEffectiveAugmentIds, getRingBounds, colorForPlayer, countStones } from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
@@ -24,6 +24,16 @@ const TARGET_HINT = {
 
 function relocateHint(pendingTarget) {
   return pendingTarget.sourceCell ? "옮길 빈 칸을 선택하세요" : "옮길 내 돌을 선택하세요";
+}
+
+const TURN_TIME_LIMIT = 30; // 매 착수마다 주어지는 제한시간(초)
+
+// 물리적 신원(myRole, localStorage에 저장되어 방을 나갔다 와도 고정)을 지금 이 판에서 실제로 맡은 논리적 색(1=흑돌/2=백돌)으로 변환
+// 재도전이 성사될 때마다 colorFlipped가 토글되어, 같은 사람이 다음 판엔 반대 색을 맡게 됨
+function toLogicalColor(identity, colorFlipped) {
+  if (identity !== 1 && identity !== 2) return identity; // spectator/null은 그대로
+  if (!colorFlipped) return identity;
+  return identity === 1 ? 2 : 1;
 }
 
 // 방에 아직 아무도 흑/백을 안 맡았으면 선점, 이미 있으면 남은 자리 선점, 둘 다 찼으면 관전
@@ -185,66 +195,119 @@ export default function RoomClient({ roomId }) {
   function handleCellClick(x, y) {
     const current = gameStateRef.current;
     if (!current) return;
+    const myColorNow = toLogicalColor(myRole, current.colorFlipped);
     if (current.pendingTarget) {
-      if (myRole !== current.pendingTarget.player) return;
+      if (myColorNow !== current.pendingTarget.player) return;
       dispatchAction({ type: "TARGET_CELL", x, y });
       return;
     }
-    if (myRole !== current.currentPlayer) return;
+    if (myColorNow !== current.currentPlayer) return;
     dispatchAction({ type: "CLICK_CELL", x, y });
   }
 
   function handlePick(augment) {
     const current = gameStateRef.current;
-    if (!current?.augmentSelect || myRole !== current.augmentSelect.player) return;
+    const myColorNow = toLogicalColor(myRole, current?.colorFlipped);
+    if (!current?.augmentSelect || myColorNow !== current.augmentSelect.player) return;
     dispatchAction({ type: "PICK_AUGMENT", augment });
   }
 
   function handleRerollSlot(index) {
     const current = gameStateRef.current;
-    if (!current?.augmentSelect || myRole !== current.augmentSelect.player) return;
+    const myColorNow = toLogicalColor(myRole, current?.colorFlipped);
+    if (!current?.augmentSelect || myColorNow !== current.augmentSelect.player) return;
     dispatchAction({ type: "REROLL_SLOT", index });
   }
 
   function handleUseAbility(player, ability) {
-    if (myRole !== player) return;
+    const current = gameStateRef.current;
+    const myColorNow = toLogicalColor(myRole, current?.colorFlipped);
+    if (myColorNow !== player) return;
     dispatchAction({ type: "USE_ABILITY", player, ability });
   }
 
   function handleRequestRematch(player) {
-    if (myRole !== player) return;
+    const current = gameStateRef.current;
+    const myColorNow = toLogicalColor(myRole, current?.colorFlipped);
+    if (myColorNow !== player) return;
     dispatchAction({ type: "REQUEST_REMATCH", player });
   }
 
-  const opponentRole = myRole === 1 ? 2 : myRole === 2 ? 1 : null;
-  const threatCells = useMemo(() => {
-    if (!gameState || opponentRole === null || gameState.currentPlayer !== myRole) return [];
-    const myAugIds = gameState.ownedAugments[myRole].map((a) => a.id);
+  // myColor/opponentColor는 "지금 이 판에서 내가 맡은 신원 슬롯"(1|2) - ownedAugments/turn 비교 등은 전부 이 슬롯 기준
+  // myBoardColor/opponentBoardColor는 "실제로 보드 위에 놓이는 돌 색" - 입장 바꿔 생각하기가 켜지면 위 슬롯과 달라질 수 있음
+  const myColor = gameState ? toLogicalColor(myRole, gameState.colorFlipped) : myRole;
+  const opponentColor = myColor === 1 ? 2 : myColor === 2 ? 1 : null;
+  const myBoardColor = gameState ? colorForPlayer(myColor, gameState.roleSwapActive) : myColor;
+  const opponentBoardColor = myBoardColor === 1 ? 2 : myBoardColor === 2 ? 1 : null;
+
+  // 위험 감지: 상대가 두면 이기는 빈 칸 대신, 그 승리를 완성해줄 상대 돌들을 선으로 이어서 보여줌
+  const threatLines = useMemo(() => {
+    if (!gameState || opponentColor === null || gameState.currentPlayer !== myColor) return [];
+    const myAugIds = gameState.ownedAugments[myColor].map((a) => a.id);
     if (!myAugIds.includes("threatRadar")) return [];
     const totalStonesPlaced = gameState.stonesPlaced[1] + gameState.stonesPlaced[2];
-    const opponentAugIds = getEffectiveAugmentIds(gameState.ownedAugments[opponentRole].map((a) => a.id), totalStonesPlaced);
-    return findThreatCells(gameState.board, opponentRole, opponentAugIds, gameState.lastMove[opponentRole]);
-  }, [gameState, myRole, opponentRole]);
+    const opponentAugIds = getEffectiveAugmentIds(gameState.ownedAugments[opponentColor].map((a) => a.id), totalStonesPlaced);
+    return findThreatLines(gameState.board, opponentBoardColor, opponentAugIds, gameState.lastMove[opponentColor]);
+  }, [gameState, myColor, opponentColor, opponentBoardColor]);
 
   // 직감: 지금 내가 두면 바로 이기는 칸을 강조 표시 (findThreatCells를 나 자신 기준으로 재사용)
   const winCells = useMemo(() => {
-    if (!gameState || myRole !== gameState.currentPlayer) return [];
-    const myAugIds = gameState.ownedAugments[myRole].map((a) => a.id);
+    if (!gameState || myColor !== gameState.currentPlayer) return [];
+    const myAugIds = gameState.ownedAugments[myColor].map((a) => a.id);
     if (!myAugIds.includes("intuition")) return [];
     const totalStonesPlaced = gameState.stonesPlaced[1] + gameState.stonesPlaced[2];
     const myEffectiveAugIds = getEffectiveAugmentIds(myAugIds, totalStonesPlaced);
-    return findThreatCells(gameState.board, myRole, myEffectiveAugIds, gameState.lastMove[myRole]);
-  }, [gameState, myRole]);
+    return findThreatCells(gameState.board, myBoardColor, myEffectiveAugIds, gameState.lastMove[myColor]);
+  }, [gameState, myColor, myBoardColor]);
 
-  // 렌주룰 금수는 흑돌 차례에만 의미 있고, 흑돌 본인 화면에만 표시
+  // 렌주룰 금수는 "지금 흑돌을 두는 신원" 차례에만 의미 있고, 그 신원 본인 화면에만 표시
   const forbiddenCells = useMemo(() => {
-    if (!gameState || myRole !== 1 || gameState.currentPlayer !== 1) return [];
+    if (!gameState) return [];
+    const blackIdentity = colorForPlayer(1, gameState.roleSwapActive);
+    if (myColor !== blackIdentity || gameState.currentPlayer !== blackIdentity) return [];
     const ownedIds = getEffectiveAugmentIds(
-      gameState.ownedAugments[1].map((a) => a.id),
+      gameState.ownedAugments[blackIdentity].map((a) => a.id),
       gameState.stonesPlaced[1] + gameState.stonesPlaced[2]
     );
-    return findForbiddenCells(gameState.board, ownedIds, gameState.lastMove[1]);
-  }, [gameState, myRole]);
+    return findForbiddenCells(gameState.board, ownedIds, gameState.lastMove[blackIdentity]);
+  }, [gameState, myColor]);
+
+  // 제한시간 타이머: 모든 클라이언트가 카운트다운을 표시하지만, 실제로 시간 초과를 발동시키는 건 지금 차례인 본인 클라이언트뿐
+  const isTimerActive = !!gameState && !gameState.gameOver && !gameState.augmentSelect && !gameState.pendingTarget;
+  const turnKey = gameState ? gameState.currentPlayer + JSON.stringify(gameState.lastMove[1]) + JSON.stringify(gameState.lastMove[2]) : "";
+  const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
+  const timeoutFiredRef = useRef(false);
+
+  // 렌더 중에 turnKey 변화를 감지해서 타이머를 리셋 (effect 안에서 동기적으로 setState하는 대신
+  // React가 권장하는 "렌더링 중 상태 조정" 패턴 사용 - https://react.dev/learn/you-might-not-need-an-effect)
+  const prevTurnKeyRef = useRef(turnKey);
+  if (prevTurnKeyRef.current !== turnKey) {
+    prevTurnKeyRef.current = turnKey;
+    timeoutFiredRef.current = false;
+    if (timeLeft !== TURN_TIME_LIMIT) setTimeLeft(TURN_TIME_LIMIT);
+  }
+
+  useEffect(() => {
+    if (!isTimerActive) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          if (!timeoutFiredRef.current) {
+            const current = gameStateRef.current;
+            const myColorNow = toLogicalColor(myRole, current?.colorFlipped);
+            if (current && myColorNow === current.currentPlayer) {
+              timeoutFiredRef.current = true;
+              dispatchAction({ type: "TIMEOUT" });
+            }
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnKey, isTimerActive]);
 
   if (status === "loading") {
     return <main className="min-h-screen flex items-center justify-center">불러오는 중...</main>;
@@ -262,21 +325,24 @@ export default function RoomClient({ roomId }) {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
-    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive, peekedCard, ultimatumCell,
+    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]);
-  const roleLabel = myRole === 1 ? "흑돌" : myRole === 2 ? "백돌" : "관전";
+  // roleLabel은 "지금 실제로 보드 위에 놓이는 내 돌 색"을 보여줘야 하므로 myBoardColor 기준
+  // (myColor까지만 쓰면 입장 바꿔 생각하기가 켜졌을 때 실제 색과 다르게 표시됨)
+  const roleLabel = myBoardColor === 1 ? "흑돌" : myBoardColor === 2 ? "백돌" : "관전";
+  const currentTurnColor = colorForPlayer(currentPlayer, roleSwapActive);
   const waitingForOpponent = !roomMeta.black_claimed || !roomMeta.white_claimed;
 
   // 마지막으로 놓인 수 표시 - 지금 차례가 아닌 쪽이 방금 둔 사람이라 그쪽의 lastMove를 보여주면 됨 (관전자도 동일)
   const lastOpponentMoveCell = lastMove[currentPlayer === 1 ? 2 : 1];
 
   // 진하게: 나를 실제로 막는 칸(역병으로 죽은 칸도 포함, 양쪽 다 막힘) / 흐리게: 내가 상대에게 건 금지라 나는 상관없는 칸
-  const boardBlockedCells = myRole === 1 || myRole === 2
-    ? [...blockedCells[myRole], ...permaBlockedCells[myRole], ...deadCells]
+  const boardBlockedCells = myColor === 1 || myColor === 2
+    ? [...blockedCells[myColor], ...permaBlockedCells[myColor], ...deadCells]
     : [...deadCells];
-  const fadedBlockedCells = myRole === 1 || myRole === 2
-    ? [...blockedCells[opponentRole], ...permaBlockedCells[opponentRole]]
+  const fadedBlockedCells = myColor === 1 || myColor === 2
+    ? [...blockedCells[opponentColor], ...permaBlockedCells[opponentColor]]
     : [...blockedCells[1], ...permaBlockedCells[1], ...blockedCells[2], ...permaBlockedCells[2]];
 
   // 감시탑은 숨김이 없어서 누구든 양쪽에 세워진 걸 다 보여줌
@@ -292,7 +358,7 @@ export default function RoomClient({ roomId }) {
     : [];
 
   // 온라인 한정: 증강 선택 중엔 상대(와 관전자)에게 카드 내용을 숨기고, 고르는 사람 화면에만 실제 카드를 보여줌
-  const isMyAugmentSelect = augmentSelect && myRole === augmentSelect.player;
+  const isMyAugmentSelect = augmentSelect && myColor === augmentSelect.player;
   const isOthersAugmentSelect = augmentSelect && !isMyAugmentSelect;
 
   return (
@@ -326,11 +392,20 @@ export default function RoomClient({ roomId }) {
         </div>
       )}
 
-      <div className="text-lg mb-1">{gameOver ? "" : (currentPlayer === 1 ? "흑돌 차례" : "백돌 차례")}</div>
-      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수 (흑 {stonesPlaced[1]} · 백 {stonesPlaced[2]})</div>
+      {roleSwapActive && (
+        <div className="text-sm bg-[#0f2a3a] rounded-md px-3 py-2 max-w-sm">
+          🔄 '입장 바꿔 생각하기' 발동 중 - 서로 담당하는 돌 색이 뒤바뀌었어요
+        </div>
+      )}
+
+      <div className="text-lg mb-1">{gameOver ? "" : (currentTurnColor === 1 ? "흑돌 차례" : "백돌 차례")}</div>
+      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수 (흑 {countStones(board, 1)} · 백 {countStones(board, 2)})</div>
+      {isTimerActive && (
+        <div className={"text-sm " + (timeLeft <= 10 ? "text-red-400" : "opacity-70")}>⏱ 남은 시간: {timeLeft}초</div>
+      )}
       {pendingTarget && (
         <div className="pendingTargetBanner">
-          {(pendingTarget.player === 1 ? "흑돌" : "백돌")}: {pendingTarget.kind === "relocate" ? relocateHint(pendingTarget) : TARGET_HINT[pendingTarget.kind]}
+          {(colorForPlayer(pendingTarget.player, roleSwapActive) === 1 ? "흑돌" : "백돌")}: {pendingTarget.kind === "relocate" ? relocateHint(pendingTarget) : TARGET_HINT[pendingTarget.kind]}
           {pendingTarget.need > 1 ? ` (${pendingTarget.selected.length}/${pendingTarget.need})` : ""}
         </div>
       )}
@@ -338,13 +413,13 @@ export default function RoomClient({ roomId }) {
 
       <div className="gameLayout">
         <AugmentPanel
-          title="⚫ 흑돌 증강"
+          title={colorForPlayer(1, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
           augments={ownedAugments[1]}
-          canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 1 && myRole === 1}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 1 && myColor === 1}
           usedMap={oneTimeUsed[1]}
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
-          peekedCard={myRole === 1 ? peekedCard[1] : null}
+          peekedCard={myColor === 1 ? peekedCard[1] : null}
         />
         <GomokuBoard
           board={board}
@@ -355,20 +430,20 @@ export default function RoomClient({ roomId }) {
           forbiddenCells={forbiddenCells}
           pendingCells={pendingCells}
           watchtowerCells={boardWatchtowerCells}
-          threatCells={threatCells}
+          threatLines={threatLines}
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
           ringBounds={ringBounds}
-          ultimatumCell={myRole === 1 || myRole === 2 ? ultimatumCell[myRole] : null}
+          ultimatumCell={myColor === 1 || myColor === 2 ? ultimatumCell[myColor] : null}
         />
         <AugmentPanel
-          title="⚪ 백돌 증강"
+          title={colorForPlayer(2, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
           augments={ownedAugments[2]}
-          canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 2 && myRole === 2}
+          canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 2 && myColor === 2}
           usedMap={oneTimeUsed[2]}
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"
-          peekedCard={myRole === 2 ? peekedCard[2] : null}
+          peekedCard={myColor === 2 ? peekedCard[2] : null}
         />
       </div>
 
@@ -379,13 +454,13 @@ export default function RoomClient({ roomId }) {
           message={winMessage}
           rematchRequested={rematchRequested}
           onRequestRematch={handleRequestRematch}
-          myRole={myRole}
+          myRole={myColor}
         />
       )}
 
       {isMyAugmentSelect && (
         <AugmentSelectOverlay
-          playerLabel={augmentSelect.player === 1 ? "흑돌" : "백돌"}
+          playerLabel={colorForPlayer(augmentSelect.player, roleSwapActive) === 1 ? "흑돌" : "백돌"}
           stoneCount={stonesPlaced[augmentSelect.player]}
           choices={augmentSelect.choices}
           onPick={handlePick}
@@ -399,7 +474,7 @@ export default function RoomClient({ roomId }) {
       {isOthersAugmentSelect && (
         <div className="augmentSelectOverlay">
           <div className="augmentSelectContent">
-            <h2>{(augmentSelect.player === 1 ? "흑돌" : "백돌") + "이 증강 선택 중..."}</h2>
+            <h2>{(colorForPlayer(augmentSelect.player, roleSwapActive) === 1 ? "흑돌" : "백돌") + "이 증강 선택 중..."}</h2>
           </div>
         </div>
       )}
