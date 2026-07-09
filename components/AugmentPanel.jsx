@@ -63,7 +63,7 @@ export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAb
                 setOpenIndex(openIndex === i ? null : i);
               }}
             >
-              <div>{augment.name}</div>
+              <div>{augment.quest ? "퀘스트: " + augment.name : augment.name}</div>
               {augment.id === "peek" && peekedCard && (
                 <div className="peekedCardNote">예약된 카드: '{peekedCard.name}'</div>
               )}

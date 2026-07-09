@@ -263,6 +263,7 @@ export default function LocalGamePage() {
           onRerollSlot={(index) => dispatch({ type: "REROLL_SLOT", index })}
           isGamble={augmentSelect.isGamble}
           bonusRerollsRemaining={augmentSelect.bonusRerollsRemaining}
+          isStartDraft={augmentSelect.isStartDraft}
         />
       )}
     </main>

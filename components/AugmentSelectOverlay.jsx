@@ -22,7 +22,7 @@ export function ShapeDiagram({ shape, gridSize }) {
 // 4턴마다 뜨는 증강 선택 화면. 카드마다 개별로 1회씩 리롤 가능.
 // 눈 아이콘을 누르고 있는 동안은 카드가 흐려지고 뒤에 있는 보드가 보임 (지금 판 상황을 보고 결정할 수 있게)
 // 도박 증강의 실버3/프리즘1 양자택일 화면일 때는 isGamble=true로 리롤 버튼 없이 렌더링
-export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices, rerolledSlots, onPick, onRerollSlot, isGamble, bonusRerollsRemaining }) {
+export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices, rerolledSlots, onPick, onRerollSlot, isGamble, bonusRerollsRemaining, isStartDraft }) {
   const [peeking, setPeeking] = useState(false);
 
   const startPeek = () => setPeeking(true);
@@ -43,7 +43,13 @@ export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices,
         👁 누르고 있으면 판 보기
       </button>
       <div className="augmentSelectContent">
-        <h2>{isGamble ? "도박 결과를 선택하세요!" : playerLabel + " 증강 선택! (" + stoneCount + "수 달성)"}</h2>
+        <h2>
+          {isGamble
+            ? "도박 결과를 선택하세요!"
+            : isStartDraft
+            ? playerLabel + " 시작 증강 선택! (착수 전)"
+            : playerLabel + " 증강 선택! (" + stoneCount + "수 달성)"}
+        </h2>
         {hasBonusRerolls && <div className="bonusRerollNotice">🎲 축적 보너스 리롤 {bonusRerollsRemaining}회 남음</div>}
         <div className="augmentSelectCards">
           {choices.map((augment, index) => {
@@ -57,7 +63,7 @@ export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices,
               >
                 <div className="cardBody" onClick={() => onPick(augment)}>
                   <div className="cardTier">{TIER_LABEL[augment.tier]}</div>
-                  <div className="cardName">{augment.name}</div>
+                  <div className="cardName">{augment.quest ? "퀘스트: " + augment.name : augment.name}</div>
                   <div className="cardDesc">{augment.desc}</div>
                   {augment.shape && <ShapeDiagram shape={augment.shape} gridSize={augment.shapeGrid} />}
                 </div>

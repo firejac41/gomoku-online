@@ -126,6 +126,7 @@ body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
+  white-space: pre-line;
 }
 .augmentPanel li:hover .augmentTooltip,
 .augmentTooltip.tooltipOpen {
@@ -292,6 +293,7 @@ body {
 .augmentCard .cardDesc {
   font-size: 13px;
   line-height: 1.4;
+  white-space: pre-line;
 }
 .cardRerollButton {
   font-size: 12px;

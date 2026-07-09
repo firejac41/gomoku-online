@@ -470,13 +470,17 @@ export default function RoomClient({ roomId }) {
           onRerollSlot={handleRerollSlot}
           isGamble={augmentSelect.isGamble}
           bonusRerollsRemaining={augmentSelect.bonusRerollsRemaining}
+          isStartDraft={augmentSelect.isStartDraft}
         />
       )}
 
       {isOthersAugmentSelect && (
         <div className="augmentSelectOverlay">
           <div className="augmentSelectContent">
-            <h2>{(colorForPlayer(augmentSelect.player, roleSwapActive) === 1 ? "흑돌" : "백돌") + "이 증강 선택 중..."}</h2>
+            <h2>
+              {(colorForPlayer(augmentSelect.player, roleSwapActive) === 1 ? "흑돌" : "백돌") +
+                (augmentSelect.isStartDraft ? "이 시작 증강 선택 중..." : "이 증강 선택 중...")}
+            </h2>
           </div>
         </div>
       )}
