@@ -325,7 +325,7 @@ export default function RoomClient({ roomId }) {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
-    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell,
+    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]);
   // roleLabel은 "지금 실제로 보드 위에 놓이는 내 돌 색"을 보여줘야 하므로 myBoardColor 기준
@@ -420,6 +420,7 @@ export default function RoomClient({ roomId }) {
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
           peekedCard={myColor === 1 ? peekedCard[1] : null}
+          cooldowns={{ boardFlip: boardFlipCooldown[1] }}
         />
         <GomokuBoard
           board={board}
@@ -444,6 +445,7 @@ export default function RoomClient({ roomId }) {
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"
           peekedCard={myColor === 2 ? peekedCard[2] : null}
+          cooldowns={{ boardFlip: boardFlipCooldown[2] }}
         />
       </div>
 

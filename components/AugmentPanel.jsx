@@ -30,7 +30,8 @@ const ACTIVE_ABILITIES = {
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
 // peekedCard: 먼저 보기로 예약해 둔 카드 - 안내 메시지가 금방 사라져서 놓치기 쉬우니 여기 계속 표시해 둠
-export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAbility, side = "left", peekedCard = null }) {
+// cooldowns: 1회용이 아니라 재사용 대기시간 방식인 능력의 남은 수 { boardFlip: N, ... } (0이면 바로 사용 가능)
+export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAbility, side = "left", peekedCard = null, cooldowns = {} }) {
   const [openIndex, setOpenIndex] = useState(null);
 
   // 터치/클릭으로 연 툴팁은 다른 곳을 터치하면 닫힘
@@ -52,6 +53,7 @@ export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAb
         {augments.map((augment, i) => {
           const abilityLabel = ACTIVE_ABILITIES[augment.id];
           const alreadyUsed = usedMap?.[augment.id];
+          const cooldownLeft = cooldowns?.[augment.id] || 0;
           return (
             <li
               key={augment.id + i}
@@ -68,13 +70,13 @@ export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAb
               {abilityLabel && (
                 <button
                   className="abilityButton"
-                  disabled={!canAct || alreadyUsed}
+                  disabled={!canAct || alreadyUsed || cooldownLeft > 0}
                   onClick={(e) => {
                     e.stopPropagation();
                     onUseAbility(augment.id);
                   }}
                 >
-                  {alreadyUsed ? "사용 완료" : abilityLabel}
+                  {alreadyUsed ? "사용 완료" : cooldownLeft > 0 ? "재사용까지 " + cooldownLeft + "수" : abilityLabel}
                 </button>
               )}
               <div
