@@ -25,22 +25,17 @@ export function ShapeDiagram({ shape, gridSize }) {
 export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices, rerolledSlots, onPick, onRerollSlot, isGamble, bonusRerollsRemaining, isStartDraft }) {
   const [peeking, setPeeking] = useState(false);
 
-  const startPeek = () => setPeeking(true);
-  const endPeek = () => setPeeking(false);
+  const togglePeek = () => setPeeking((prev) => !prev);
   const hasBonusRerolls = !isGamble && bonusRerollsRemaining > 0;
 
   return (
     <div className={"augmentSelectOverlay" + (peeking ? " peeking" : "")}>
       <button
         className="peekEyeButton"
-        onMouseDown={startPeek}
-        onMouseUp={endPeek}
-        onMouseLeave={endPeek}
-        onTouchStart={startPeek}
-        onTouchEnd={endPeek}
-        title="누르고 있으면 판이 보여요"
+        onClick={togglePeek}
+        title={peeking ? "눌러서 카드 다시 보기" : "눌러서 판 보기"}
       >
-        👁 누르고 있으면 판 보기
+        {peeking ? "👁 카드 다시 보기" : "👁 눌러서 판 보기"}
       </button>
       <div className="augmentSelectContent">
         <h2>

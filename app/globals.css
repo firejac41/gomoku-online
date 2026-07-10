@@ -140,6 +140,100 @@ body {
   margin-top: 2px;
 }
 
+.homeConveyor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 130px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: -1;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+}
+.homeConveyor.left {
+  left: 0;
+}
+.homeConveyor.right {
+  right: 0;
+}
+.conveyorTrack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  animation: conveyorScroll 26s linear infinite;
+  will-change: transform;
+}
+.homeConveyor.right .conveyorTrack {
+  animation-direction: reverse;
+}
+@keyframes conveyorScroll {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+.conveyorCard {
+  border-radius: 8px;
+  padding: 10px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  color: #f0f0f0;
+}
+
+/* 모바일 전용 가로 컨베이어 벨트 (위/아래) - 데스크탑에서는 숨김, 세로 벨트와 반대로 모바일에서만 보임 */
+.homeConveyorH {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 90px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: -1;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+}
+.homeConveyorH.top {
+  top: 0;
+}
+.homeConveyorH.bottom {
+  bottom: 0;
+}
+.conveyorTrackH {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  width: max-content;
+  padding: 0 10px;
+  animation: conveyorScrollH 22s linear infinite;
+  will-change: transform;
+}
+/* 기본(위쪽)은 좌→우로 보이게 반전, 아래쪽은 기본 방향(우→좌) 그대로 사용 */
+.homeConveyorH.top .conveyorTrackH {
+  animation-direction: reverse;
+}
+@keyframes conveyorScrollH {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.conveyorCardH {
+  flex-shrink: 0;
+  white-space: nowrap;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f0f0f0;
+}
+
 /* ===== 오목 증강전 공용 스타일 ===== */
 
 .bigButton {
@@ -487,6 +581,12 @@ body {
   }
   .homeTitle {
     font-size: 40px;
+  }
+  .homeConveyor {
+    display: none;
+  }
+  .homeConveyorH {
+    display: block;
   }
   /* 데스크탑은 패널 옆(보드 쪽)으로 튀어나가게 배치하지만, 모바일은 패널이 전체 폭이라
      옆으로 밀면 화면 밖으로 나가서 안 보임 - 카드 바로 아래에 펼치도록 변경 */
