@@ -28,7 +28,7 @@ function relocateHint(pendingTarget) {
 
 const TURN_TIME_LIMIT = 30; // 매 착수마다 주어지는 제한시간(초)
 
-// 물리적 신원(myRole, localStorage에 저장되어 방을 나갔다 와도 고정)을 지금 이 판에서 실제로 맡은 논리적 색(1=흑돌/2=백돌)으로 변환
+// 물리적 신원(myRole, sessionStorage에 저장되어 이 탭에서 방을 나갔다 와도 고정 - 단, 새 탭/다른 브라우저와는 공유 안 됨)을 지금 이 판에서 실제로 맡은 논리적 색(1=흑돌/2=백돌)으로 변환
 // 재도전이 성사될 때마다 colorFlipped가 토글되어, 같은 사람이 다음 판엔 반대 색을 맡게 됨
 function toLogicalColor(identity, colorFlipped) {
   if (identity !== 1 && identity !== 2) return identity; // spectator/null은 그대로
@@ -140,7 +140,7 @@ export default function RoomClient({ roomId }) {
         return;
       }
 
-      const savedRole = localStorage.getItem(`gomoku-role-${roomId}`);
+      const savedRole = sessionStorage.getItem(`gomoku-role-${roomId}`);
       let role;
       let blackClaimed = room.black_claimed;
       let whiteClaimed = room.white_claimed;
@@ -154,7 +154,7 @@ export default function RoomClient({ roomId }) {
         role = claimed.role;
         blackClaimed = claimed.blackClaimed;
         whiteClaimed = claimed.whiteClaimed;
-        localStorage.setItem(`gomoku-role-${roomId}`, String(role));
+        sessionStorage.setItem(`gomoku-role-${roomId}`, String(role));
       }
 
       if (cancelled) return;

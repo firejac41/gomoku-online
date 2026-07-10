@@ -27,7 +27,9 @@ export default function OnlinePage() {
       return;
     }
 
-    localStorage.setItem(`gomoku-role-${data.id}`, "1");
+    // sessionStorage 사용: 새로고침해도 역할은 유지되지만, 같은 브라우저에서 탭을 새로 열면
+    // (localStorage와 달리) 그 탭은 독립된 저장소를 가져서 흑돌/백돌 역할이 안 겹침
+    sessionStorage.setItem(`gomoku-role-${data.id}`, "1");
     router.push(`/online/${data.id}`);
   }
 
