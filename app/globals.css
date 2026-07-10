@@ -331,6 +331,8 @@ body {
 .statusBanner.ring { border-left-color: #f5a623; }
 .statusBanner.chaos { border-left-color: #ff9ff3; }
 .statusBanner.roleSwapBanner { border-left-color: #48dbfb; }
+.statusBanner.checkerboardBanner { border-left-color: #6bcb77; }
+.statusBanner.nozdormuBanner { border-left-color: #d4a017; }
 
 .turnIndicator {
   display: flex;
@@ -411,6 +413,39 @@ body {
   max-width: 100%;
   height: auto;
   touch-action: manipulation;
+}
+
+.boardWrapper {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+}
+
+/* 안개: 보드 외곽을 뿌옇게 가리는 오버레이 - 밑에 깔린 돌/격자를 흐릿하게 만들고, 떠다니는 옅은 안개 결을
+   은은하게 얹어서 밋밋한 검은 사각형 대신 진짜 안개처럼 보이게 함.
+   주의: backdrop-filter는 이 프로젝트의 Tailwind v4 + Lightning CSS 빌드 파이프라인이 순수 CSS 선언을
+   조용히 제거해버려서(globals.css에 직접 써도 컴파일된 스타일시트에서 통째로 사라짐 - 라이브 검증 중 발견함),
+   여기 CSS로는 안 넣고 GomokuBoard.jsx의 인라인 style(backdropFilter)로 직접 줌 - 인라인 스타일은
+   이 빌드 파이프라인을 거치지 않아서 안전함 */
+.fogBand {
+  position: absolute;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.22), transparent 60%),
+    radial-gradient(ellipse at 75% 65%, rgba(255, 255, 255, 0.16), transparent 55%),
+    rgba(220, 222, 230, 0.32);
+  background-size: 220% 220%, 260% 260%, 100% 100%;
+  animation: fogDrift 9s ease-in-out infinite alternate;
+}
+.fogBandTop { top: 0; left: 0; right: 0; border-radius: 8px 8px 0 0; }
+.fogBandBottom { bottom: 0; left: 0; right: 0; border-radius: 0 0 8px 8px; }
+.fogBandLeft { top: 0; bottom: 0; left: 0; border-radius: 8px 0 0 8px; }
+.fogBandRight { top: 0; bottom: 0; right: 0; border-radius: 0 8px 8px 0; }
+
+@keyframes fogDrift {
+  from { background-position: 0% 0%, 100% 100%, 0 0; }
+  to { background-position: 30% 20%, 70% 80%, 0 0; }
 }
 
 .forbiddenMessage {
@@ -515,6 +550,15 @@ body {
 .augmentPanel li.tier-silver { border-left-color: #b0b0b0; }
 .augmentPanel li.tier-gold { border-left-color: #e0b23c; }
 .augmentPanel li.tier-prism { border-left-color: #feca57; }
+
+/* 파기/감정 사용 중: 대상으로 고를 수 없는 카드는 흐리게, 고를 수 있는 카드는 초록 테두리로 강조 */
+.augmentPanel li.cardTargetMode { opacity: 0.4; cursor: default; }
+.augmentPanel li.cardTargetMode.cardTargetEligible {
+  opacity: 1;
+  cursor: pointer;
+  border: 1px solid #2ecc71;
+  box-shadow: 0 0 6px rgba(46, 204, 113, 0.5);
+}
 .augmentPanel li.tier-prism > div:first-child {
   background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
   -webkit-background-clip: text;

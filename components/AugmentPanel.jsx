@@ -26,12 +26,30 @@ const ACTIVE_ABILITIES = {
   oracle: "다음 회차 프리즘 확정",
   boardFlip: "내 돌 전부 재배치 (사용하면 턴 넘어감)",
   wipeout: "판 위 돌 전부 지우기 (사용하면 턴 넘어감)",
+  fog: "상대 시야 가리기 (2턴)",
+  discard: "카드 파기 (같은 등급 새 카드로)",
+  appraisal: "카드 강화 (이름+)",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
 // peekedCard: 먼저 보기로 예약해 둔 카드 - 안내 메시지가 금방 사라져서 놓치기 쉬우니 여기 계속 표시해 둠
 // cooldowns: 1회용이 아니라 재사용 대기시간 방식인 능력의 남은 수 { boardFlip: N, ... } (0이면 바로 사용 가능)
-export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAbility, side = "left", peekedCard = null, cooldowns = {} }) {
+// cardTargetActive: 파기/감정 사용 중 이 패널의 카드를 대상으로 골라야 하면 true (보드 칸이 아니라 카드 자체를 클릭해서 선택)
+// eligibleCardIds: cardTargetActive일 때 실제로 고를 수 있는 카드 id 목록 (강조 표시용, 아닌 카드는 클릭해도 무시됨)
+// onPickCardTarget: cardTargetActive일 때 카드를 클릭하면 호출됨
+export default function AugmentPanel({
+  title,
+  augments,
+  canAct,
+  usedMap,
+  onUseAbility,
+  side = "left",
+  peekedCard = null,
+  cooldowns = {},
+  cardTargetActive = false,
+  eligibleCardIds = [],
+  onPickCardTarget = null,
+}) {
   const [openIndex, setOpenIndex] = useState(null);
 
   // 터치/클릭으로 연 툴팁은 다른 곳을 터치하면 닫힘
@@ -54,12 +72,17 @@ export default function AugmentPanel({ title, augments, canAct, usedMap, onUseAb
           const abilityLabel = ACTIVE_ABILITIES[augment.id];
           const alreadyUsed = usedMap?.[augment.id];
           const cooldownLeft = cooldowns?.[augment.id] || 0;
+          const isEligibleTarget = cardTargetActive && eligibleCardIds.includes(augment.id);
           return (
             <li
               key={augment.id + i}
-              className={"tier-" + augment.tier}
+              className={"tier-" + augment.tier + (cardTargetActive ? " cardTargetMode" : "") + (isEligibleTarget ? " cardTargetEligible" : "")}
               onClick={(e) => {
                 e.stopPropagation();
+                if (cardTargetActive) {
+                  if (isEligibleTarget) onPickCardTarget?.(augment.id);
+                  return;
+                }
                 setOpenIndex(openIndex === i ? null : i);
               }}
             >

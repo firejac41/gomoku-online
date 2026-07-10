@@ -4,7 +4,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { gameReducer } from "@/lib/gameReducer";
-import { findThreatCells, findThreatLines, findForbiddenCells, getEffectiveAugmentIds, getRingBounds, colorForPlayer, countStones } from "@/lib/gomokuEngine";
+import {
+  findThreatCells,
+  findThreatLines,
+  findForbiddenCells,
+  findOpenThreeSetupCells,
+  getEffectiveAugmentIds,
+  getRingBounds,
+  colorForPlayer,
+  countStones,
+  ENHANCEABLE_AUGMENT_IDS,
+} from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
@@ -20,13 +30,15 @@ const TARGET_HINT = {
   jailbreak: "해제할 막힌 자리를 선택하세요",
   plague: "영구 봉인할 상대 돌을 선택하세요",
   collapse: "중심으로 삼을 칸을 선택하세요 (3x3이 사라져요)",
+  discard: "버릴 증강 카드를 내 패널에서 선택하세요",
+  appraisal: "강화할 증강 카드를 내 패널에서 선택하세요",
 };
 
 function relocateHint(pendingTarget) {
   return pendingTarget.sourceCell ? "옮길 빈 칸을 선택하세요" : "옮길 내 돌을 선택하세요";
 }
 
-const TURN_TIME_LIMIT = 30; // 매 착수마다 주어지는 제한시간(초)
+const DEFAULT_TURN_TIME_LIMIT = 30; // 매 착수마다 주어지는 기본 제한시간(초) - 노즈도르무가 발동되면 timeLimitOverride로 대체됨
 
 // 물리적 신원(myRole, sessionStorage에 저장되어 이 탭에서 방을 나갔다 와도 고정 - 단, 새 탭/다른 브라우저와는 공유 안 됨)을 지금 이 판에서 실제로 맡은 논리적 색(1=흑돌/2=백돌)으로 변환
 // 재도전이 성사될 때마다 colorFlipped가 토글되어, 같은 사람이 다음 판엔 반대 색을 맡게 됨
@@ -263,6 +275,13 @@ export default function RoomClient({ roomId }) {
     dispatchAction({ type: "USE_ABILITY", player, ability });
   }
 
+  function handlePickCardTarget(augmentId) {
+    const current = gameStateRef.current;
+    const myColorNow = toLogicalColor(myRole, current?.colorFlipped);
+    if (!current?.pendingTarget || myColorNow !== current.pendingTarget.player) return;
+    dispatchAction({ type: "PICK_CARD_TARGET", augmentId });
+  }
+
   function handleRequestRematch(player) {
     const current = gameStateRef.current;
     const myColorNow = toLogicalColor(myRole, current?.colorFlipped);
@@ -297,6 +316,14 @@ export default function RoomClient({ roomId }) {
     return findThreatCells(gameState.board, myBoardColor, myEffectiveAugIds, gameState.lastMove[myColor]);
   }, [gameState, myColor, myBoardColor]);
 
+  // 예지: 상대가 다음에 두면 열린 3목이 되는 빈 칸을 미리 강조 표시
+  const foresightCells = useMemo(() => {
+    if (!gameState || opponentBoardColor === null) return [];
+    const myAugIds = gameState.ownedAugments[myColor]?.map((a) => a.id) || [];
+    if (!myAugIds.includes("foresight")) return [];
+    return findOpenThreeSetupCells(gameState.board, opponentBoardColor);
+  }, [gameState, myColor, opponentBoardColor]);
+
   // 렌주룰 금수는 "지금 흑돌을 두는 신원" 차례에만 의미 있고, 그 신원 본인 화면에만 표시
   const forbiddenCells = useMemo(() => {
     if (!gameState) return [];
@@ -312,7 +339,8 @@ export default function RoomClient({ roomId }) {
   // 제한시간 타이머: 모든 클라이언트가 카운트다운을 표시하지만, 실제로 시간 초과를 발동시키는 건 지금 차례인 본인 클라이언트뿐
   const isTimerActive = !!gameState && !gameState.gameOver && !gameState.augmentSelect && !gameState.pendingTarget;
   const turnKey = gameState ? gameState.currentPlayer + JSON.stringify(gameState.lastMove[1]) + JSON.stringify(gameState.lastMove[2]) : "";
-  const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
+  const turnTimeLimit = (gameState && gameState.timeLimitOverride) || DEFAULT_TURN_TIME_LIMIT;
+  const [timeLeft, setTimeLeft] = useState(turnTimeLimit);
   const timeoutFiredRef = useRef(false);
 
   // 렌더 중에 turnKey 변화를 감지해서 타이머를 리셋 (effect 안에서 동기적으로 setState하는 대신
@@ -321,7 +349,7 @@ export default function RoomClient({ roomId }) {
   if (prevTurnKeyRef.current !== turnKey) {
     prevTurnKeyRef.current = turnKey;
     timeoutFiredRef.current = false;
-    if (timeLeft !== TURN_TIME_LIMIT) setTimeLeft(TURN_TIME_LIMIT);
+    if (timeLeft !== turnTimeLimit) setTimeLeft(turnTimeLimit);
   }
 
   useEffect(() => {
@@ -363,6 +391,7 @@ export default function RoomClient({ roomId }) {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
     deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]);
   // roleLabel은 "지금 실제로 보드 위에 놓이는 내 돌 색"을 보여줘야 하므로 myBoardColor 기준
@@ -397,6 +426,17 @@ export default function RoomClient({ roomId }) {
   // 온라인 한정: 증강 선택 중엔 상대(와 관전자)에게 카드 내용을 숨기고, 고르는 사람 화면에만 실제 카드를 보여줌
   const isMyAugmentSelect = augmentSelect && myColor === augmentSelect.player;
   const isOthersAugmentSelect = augmentSelect && !isMyAugmentSelect;
+
+  // 파기/감정은 보드 칸이 아니라 "내 패널의 카드"를 대상으로 고르는 능력이라, 해당 플레이어 패널에만
+  // 카드 선택 모드를 켜고 실제로 고를 수 있는 카드 id 목록을 같이 넘겨줌
+  const cardTargetKind = pendingTarget?.kind === "discard" || pendingTarget?.kind === "appraisal" ? pendingTarget.kind : null;
+  function eligibleCardIdsFor(player) {
+    if (!cardTargetKind || pendingTarget.player !== player) return [];
+    if (cardTargetKind === "discard") {
+      return ownedAugments[player].filter((a) => a.id !== "discard").map((a) => a.id);
+    }
+    return ownedAugments[player].filter((a) => ENHANCEABLE_AUGMENT_IDS.includes(a.id) && !a.enhanced).map((a) => a.id);
+  }
 
   return (
     <main className="gamePage">
@@ -436,6 +476,18 @@ export default function RoomClient({ roomId }) {
         </div>
       )}
 
+      {checkerboardActive && (
+        <div className="statusBanner checkerboardBanner">
+          🏁 '체크무늬' 발동 중 - 짝수 칸(대각선 방향)만 착수할 수 있어요
+        </div>
+      )}
+
+      {timeLimitOverride && (
+        <div className="statusBanner nozdormuBanner">
+          ⏳ '노즈도르무' 발동 중 - 양쪽 제한시간이 {timeLimitOverride}초로 고정됐어요
+        </div>
+      )}
+
       <div className="turnIndicator">
         {!gameOver && <span className={"turnDot " + (currentTurnColor === 1 ? "black" : "white")} />}
         {gameOver ? "" : (currentTurnColor === 1 ? "흑돌 차례" : "백돌 차례")}
@@ -462,6 +514,9 @@ export default function RoomClient({ roomId }) {
           side="left"
           peekedCard={myColor === 1 ? peekedCard[1] : null}
           cooldowns={{ boardFlip: boardFlipCooldown[1] }}
+          cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1 && myColor === 1}
+          eligibleCardIds={eligibleCardIdsFor(1)}
+          onPickCardTarget={handlePickCardTarget}
         />
         <GomokuBoard
           board={board}
@@ -477,6 +532,9 @@ export default function RoomClient({ roomId }) {
           lastOpponentMoveCell={lastOpponentMoveCell}
           ringBounds={ringBounds}
           ultimatumCell={myColor === 1 || myColor === 2 ? ultimatumCell[myColor] : null}
+          foresightCells={foresightCells}
+          checkerboardActive={checkerboardActive}
+          fogTurnsLeft={myColor === 1 || myColor === 2 ? fogTurnsLeft[myColor] : 0}
         />
         <AugmentPanel
           title={colorForPlayer(2, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
@@ -487,6 +545,9 @@ export default function RoomClient({ roomId }) {
           side="right"
           peekedCard={myColor === 2 ? peekedCard[2] : null}
           cooldowns={{ boardFlip: boardFlipCooldown[2] }}
+          cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2 && myColor === 2}
+          eligibleCardIds={eligibleCardIdsFor(2)}
+          onPickCardTarget={handlePickCardTarget}
         />
       </div>
 

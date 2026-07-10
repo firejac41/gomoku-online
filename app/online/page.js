@@ -17,7 +17,7 @@ export default function OnlinePage() {
 
     const { data, error } = await supabase
       .from("game_rooms")
-      .insert({ state: initialGameState(), black_claimed: true })
+      .insert({ state: initialGameState(true), black_claimed: true })
       .select()
       .single();
 

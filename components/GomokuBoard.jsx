@@ -7,6 +7,9 @@ const CELL = 40;
 const PADDING = CELL;
 const STONE_RADIUS = 17;
 const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
+// 안개: 보드 외곽 2줄(그리드 인덱스 1.5 지점까지)을 가리는 밴드 두께를 캔버스 대비 퍼센트로 미리 계산
+// (캔버스가 CSS로 축소 표시될 수 있어서 오버레이도 % 기반으로 깔아야 항상 같은 자리에 맞음)
+const FOG_BAND_PERCENT = ((PADDING + 1.5 * CELL) / CANVAS_SIZE) * 100;
 
 // 15x15 오목판을 캔버스에 그리고, 클릭 좌표를 격자 좌표로 바꿔 onCellClick(x, y)로 알려줌
 // blockedCells: 나를 실제로 막는 칸(진한 X), fadedBlockedCells: 내가 상대에게 건 금지라 나는 상관없는 칸(흐린 X)
@@ -17,6 +20,9 @@ const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 // lastOpponentMoveCell: 상대가 마지막으로 둔 자리(빨간 사각 테두리) - 지금 판이 어디서 바뀌었는지 한눈에 보이게
 // ringBounds: 링 위에서 싸우자로 좁혀 들어간 안쪽 범위 {minX,maxX,minY,maxY} - 바깥쪽을 어둡게 덮어서 표시
 // ultimatumCell: 내가 선언한 최후통첩 칸(보라 사각 점선 - 나에게만 보임), fadedUltimatumCell: 상대가 선언한 칸(로컬 모드에서만 흐리게 표시)
+// foresightCells: 예지로 강조할, 상대가 다음에 두면 열린 3목이 되는 빈 칸(노란 다이아몬드)
+// checkerboardActive: 체크무늬 발동 중이면 (x+y) 짝수 칸에 옅은 체크 타일 하이라이트를 깔아줌
+// fogTurnsLeft: 안개에 걸린 내 남은 턴 수(0보다 크면) - 보드 외곽 2줄을 안개 오버레이로 가림 (온라인 전용)
 export default function GomokuBoard({
   board,
   onCellClick,
@@ -32,6 +38,9 @@ export default function GomokuBoard({
   ringBounds = null,
   ultimatumCell = null,
   fadedUltimatumCell = null,
+  foresightCells = [],
+  checkerboardActive = false,
+  fogTurnsLeft = 0,
 }) {
   const canvasRef = useRef(null);
 
@@ -53,6 +62,19 @@ export default function GomokuBoard({
       ctx.moveTo(pos, PADDING);
       ctx.lineTo(pos, PADDING + (BOARD_SIZE - 1) * CELL);
       ctx.stroke();
+    }
+
+    // 체크무늬: (x+y)가 짝수인(=착수 가능한) 칸마다 옅은 타일을 깔아서 패턴을 한눈에 보이게 함
+    if (checkerboardActive) {
+      ctx.fillStyle = "rgba(100, 180, 255, 0.10)";
+      for (let cy = 0; cy < BOARD_SIZE; cy++) {
+        for (let cx = 0; cx < BOARD_SIZE; cx++) {
+          if ((cx + cy) % 2 !== 0) continue;
+          const px = PADDING + cx * CELL;
+          const py = PADDING + cy * CELL;
+          ctx.fillRect(px - CELL / 2, py - CELL / 2, CELL, CELL);
+        }
+      }
     }
 
     // 링 위에서 싸우자: 좁혀 들어간 바깥 범위를 어둡게 덮고, 안쪽 경계는 주황 테두리로 표시
@@ -122,6 +144,22 @@ export default function GomokuBoard({
       ctx.arc(cx, cy, STONE_RADIUS + 4, 0, Math.PI * 2);
       ctx.strokeStyle = "#2ecc71";
       ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // 예지: 상대가 다음에 두면 열린 3목이 되는 빈 칸 - 노란 다이아몬드로 표시
+    ctx.strokeStyle = "#f1c40f";
+    ctx.lineWidth = 2;
+    for (const { x, y } of foresightCells) {
+      const cx = PADDING + x * CELL;
+      const cy = PADDING + y * CELL;
+      const half = CELL * 0.24;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - half);
+      ctx.lineTo(cx + half, cy);
+      ctx.lineTo(cx, cy + half);
+      ctx.lineTo(cx - half, cy);
+      ctx.closePath();
       ctx.stroke();
     }
 
@@ -198,7 +236,7 @@ export default function GomokuBoard({
         }
       }
     }
-  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ultimatumCell, fadedUltimatumCell]);
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ultimatumCell, fadedUltimatumCell, foresightCells, checkerboardActive]);
 
   function handleClick(e) {
     if (disabled) return;
@@ -216,12 +254,23 @@ export default function GomokuBoard({
   }
 
   return (
-    <canvas
-      id="gomoku-board"
-      ref={canvasRef}
-      width={CANVAS_SIZE}
-      height={CANVAS_SIZE}
-      onClick={handleClick}
-    />
+    <div className="boardWrapper">
+      <canvas
+        id="gomoku-board"
+        ref={canvasRef}
+        width={CANVAS_SIZE}
+        height={CANVAS_SIZE}
+        onClick={handleClick}
+      />
+      {fogTurnsLeft > 0 && (
+        <>
+          {/* backdropFilter는 인라인 style로 직접 줌 - CSS 클래스에 넣으면 이 프로젝트 빌드 파이프라인이 제거함 */}
+          <div className="fogBand fogBandTop" style={{ height: FOG_BAND_PERCENT + "%", backdropFilter: "blur(5px)" }} />
+          <div className="fogBand fogBandBottom" style={{ height: FOG_BAND_PERCENT + "%", backdropFilter: "blur(5px)" }} />
+          <div className="fogBand fogBandLeft" style={{ width: FOG_BAND_PERCENT + "%", backdropFilter: "blur(5px)" }} />
+          <div className="fogBand fogBandRight" style={{ width: FOG_BAND_PERCENT + "%", backdropFilter: "blur(5px)" }} />
+        </>
+      )}
+    </div>
   );
 }

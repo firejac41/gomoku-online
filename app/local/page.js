@@ -7,7 +7,17 @@ import AugmentPanel from "@/components/AugmentPanel";
 import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState } from "@/lib/gameReducer";
-import { findThreatCells, findThreatLines, findForbiddenCells, getEffectiveAugmentIds, getRingBounds, colorForPlayer, countStones } from "@/lib/gomokuEngine";
+import {
+  findThreatCells,
+  findThreatLines,
+  findForbiddenCells,
+  findOpenThreeSetupCells,
+  getEffectiveAugmentIds,
+  getRingBounds,
+  colorForPlayer,
+  countStones,
+  ENHANCEABLE_AUGMENT_IDS,
+} from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
 
 const TARGET_HINT = {
@@ -19,27 +29,32 @@ const TARGET_HINT = {
   jailbreak: "해제할 막힌 자리를 선택하세요",
   plague: "영구 봉인할 상대 돌을 선택하세요",
   collapse: "중심으로 삼을 칸을 선택하세요 (3x3이 사라져요)",
+  discard: "버릴 증강 카드를 내 패널에서 선택하세요",
+  appraisal: "강화할 증강 카드를 내 패널에서 선택하세요",
 };
 
 function relocateHint(pendingTarget) {
   return pendingTarget.sourceCell ? "옮길 빈 칸을 선택하세요" : "옮길 내 돌을 선택하세요";
 }
 
-const TURN_TIME_LIMIT = 30; // 매 착수마다 주어지는 제한시간(초)
+const DEFAULT_TURN_TIME_LIMIT = 30; // 매 착수마다 주어지는 기본 제한시간(초) - 노즈도르무가 발동되면 timeLimitOverride로 대체됨
 
 export default function LocalGamePage() {
-  const [state, dispatch] = useReducer(gameReducer, undefined, initialGameState);
+  const [state, dispatch] = useReducer(gameReducer, undefined, () => initialGameState(false));
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
     ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride,
   } = state;
 
-  // 제한시간 타이머: 착수 하나가 끝날 때마다(같은 플레이어가 이어서 두는 질풍노도/양수겹침 보너스 수 포함) 새로 30초 시작
+  const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
+
+  // 제한시간 타이머: 착수 하나가 끝날 때마다(같은 플레이어가 이어서 두는 질풍노도/양수겹침 보너스 수 포함) 새로 타이머 시작
   const isTimerActive = !gameOver && !augmentSelect && !pendingTarget;
   const turnKey = currentPlayer + JSON.stringify(lastMove[1]) + JSON.stringify(lastMove[2]);
-  const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
+  const [timeLeft, setTimeLeft] = useState(turnTimeLimit);
   const timeoutFiredRef = useRef(false);
 
   // 렌더 중에 turnKey 변화를 감지해서 타이머를 리셋 (effect 안에서 동기적으로 setState하는 대신
@@ -48,7 +63,7 @@ export default function LocalGamePage() {
   if (prevTurnKeyRef.current !== turnKey) {
     prevTurnKeyRef.current = turnKey;
     timeoutFiredRef.current = false;
-    if (timeLeft !== TURN_TIME_LIMIT) setTimeLeft(TURN_TIME_LIMIT);
+    if (timeLeft !== turnTimeLimit) setTimeLeft(turnTimeLimit);
   }
 
   useEffect(() => {
@@ -145,6 +160,13 @@ export default function LocalGamePage() {
     return findThreatCells(board, currentColor, myEffectiveAugIds, lastMove[currentPlayer]);
   }, [board, ownedAugments, currentPlayer, currentColor, lastMove, stonesPlaced]);
 
+  // 예지: 상대가 다음에 두면 열린 3목이 되는 빈 칸을 미리 강조 표시
+  const foresightCells = useMemo(() => {
+    const myAugIds = ownedAugments[currentPlayer].map((a) => a.id);
+    if (!myAugIds.includes("foresight")) return [];
+    return findOpenThreeSetupCells(board, opponentColor);
+  }, [board, ownedAugments, currentPlayer, opponentColor]);
+
   // 마지막으로 놓인 수 표시 - 지금 차례가 아닌 쪽이 방금 둔 사람
   const lastOpponentMoveCell = lastMove[opponent];
 
@@ -165,6 +187,21 @@ export default function LocalGamePage() {
 
   function handleUseAbility(player, ability) {
     dispatch({ type: "USE_ABILITY", player, ability });
+  }
+
+  function handlePickCardTarget(augmentId) {
+    dispatch({ type: "PICK_CARD_TARGET", augmentId });
+  }
+
+  // 파기/감정은 보드 칸이 아니라 "내 패널의 카드"를 대상으로 고르는 능력이라, 해당 플레이어 패널에만
+  // 카드 선택 모드를 켜고 실제로 고를 수 있는 카드 id 목록을 같이 넘겨줌
+  const cardTargetKind = pendingTarget?.kind === "discard" || pendingTarget?.kind === "appraisal" ? pendingTarget.kind : null;
+  function eligibleCardIdsFor(player) {
+    if (!cardTargetKind || pendingTarget.player !== player) return [];
+    if (cardTargetKind === "discard") {
+      return ownedAugments[player].filter((a) => a.id !== "discard").map((a) => a.id);
+    }
+    return ownedAugments[player].filter((a) => ENHANCEABLE_AUGMENT_IDS.includes(a.id) && !a.enhanced).map((a) => a.id);
   }
 
   return (
@@ -189,6 +226,16 @@ export default function LocalGamePage() {
       {roleSwapActive && (
         <div className="statusBanner roleSwapBanner">
           🔄 '입장 바꿔 생각하기' 발동 중 - 서로 담당하는 돌 색이 뒤바뀌었어요
+        </div>
+      )}
+      {checkerboardActive && (
+        <div className="statusBanner checkerboardBanner">
+          🏁 '체크무늬' 발동 중 - 짝수 칸(대각선 방향)만 착수할 수 있어요
+        </div>
+      )}
+      {timeLimitOverride && (
+        <div className="statusBanner nozdormuBanner">
+          ⏳ '노즈도르무' 발동 중 - 양쪽 제한시간이 {timeLimitOverride}초로 고정됐어요
         </div>
       )}
       <div className="turnIndicator">
@@ -217,6 +264,9 @@ export default function LocalGamePage() {
           side="left"
           peekedCard={peekedCard[1]}
           cooldowns={{ boardFlip: boardFlipCooldown[1] }}
+          cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1}
+          eligibleCardIds={eligibleCardIdsFor(1)}
+          onPickCardTarget={handlePickCardTarget}
         />
         <GomokuBoard
           board={board}
@@ -233,6 +283,9 @@ export default function LocalGamePage() {
           ringBounds={ringBounds}
           ultimatumCell={ultimatumCell[currentPlayer]}
           fadedUltimatumCell={ultimatumCell[opponent]}
+          foresightCells={foresightCells}
+          checkerboardActive={checkerboardActive}
+          fogTurnsLeft={fogTurnsLeft[currentPlayer]}
         />
         <AugmentPanel
           title={colorForPlayer(2, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
@@ -243,6 +296,9 @@ export default function LocalGamePage() {
           side="right"
           peekedCard={peekedCard[2]}
           cooldowns={{ boardFlip: boardFlipCooldown[2] }}
+          cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2}
+          eligibleCardIds={eligibleCardIdsFor(2)}
+          onPickCardTarget={handlePickCardTarget}
         />
       </div>
 
