@@ -52,7 +52,10 @@ export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices,
             const canReroll = !usedNormalReroll || hasBonusRerolls;
             return (
               <div
-                key={augment.id + "-" + index}
+                // key를 슬롯 위치(index) 기준으로 고정 - augment.id를 key에 넣으면 리롤할 때마다
+                // React가 그 카드를 새 엘리먼트로 보고 리마운트해서, 처음 등장할 때 쓰는 화려한
+                // cardPopIn(회전+확대+낙하) 애니메이션이 그 카드 하나만 다시 재생되며 버벅여 보였음
+                key={index}
                 className={"augmentCard tier-" + augment.tier}
                 style={{ animationDelay: index * 0.12 + "s" }}
               >

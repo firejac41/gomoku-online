@@ -26,7 +26,7 @@ const ACTIVE_ABILITIES = {
   oracle: "다음 회차 프리즘 확정",
   boardFlip: "내 돌 전부 재배치 (사용하면 턴 넘어감)",
   wipeout: "판 위 돌 전부 지우기 (사용하면 턴 넘어감)",
-  fog: "상대 시야 가리기 (2턴)",
+  fog: "상대 시야 가리기 (3턴)",
   discard: "카드 파기 (같은 등급 새 카드로)",
   appraisal: "카드 강화 (이름+)",
 };
