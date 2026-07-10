@@ -431,11 +431,14 @@ body {
 .fogBand {
   position: absolute;
   pointer-events: none;
+  /* 이전엔 옅은 흰색 하이라이트 + 32% 알파 밑칠이라 밝은 보드 배경 위에서 거의 안 보였음
+     (실제 플레이 피드백: "너무 잘 보인다") - 밑에 돌이 실제로 안 보일 만큼 짙은 회색 구름으로 재조정 */
   background:
-    radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.22), transparent 60%),
-    radial-gradient(ellipse at 75% 65%, rgba(255, 255, 255, 0.16), transparent 55%),
-    rgba(220, 222, 230, 0.32);
-  background-size: 220% 220%, 260% 260%, 100% 100%;
+    radial-gradient(ellipse at 25% 35%, rgba(60, 60, 66, 0.95), transparent 65%),
+    radial-gradient(ellipse at 70% 60%, rgba(40, 40, 46, 0.93), transparent 60%),
+    radial-gradient(ellipse at 45% 80%, rgba(75, 75, 82, 0.9), transparent 55%),
+    rgba(30, 30, 35, 0.92);
+  background-size: 200% 200%, 220% 220%, 240% 240%, 100% 100%;
   animation: fogDrift 9s ease-in-out infinite alternate;
 }
 .fogBandTop { top: 0; left: 0; right: 0; border-radius: 8px 8px 0 0; }
@@ -444,8 +447,8 @@ body {
 .fogBandRight { top: 0; bottom: 0; right: 0; border-radius: 0 8px 8px 0; }
 
 @keyframes fogDrift {
-  from { background-position: 0% 0%, 100% 100%, 0 0; }
-  to { background-position: 30% 20%, 70% 80%, 0 0; }
+  from { background-position: 0% 0%, 100% 100%, 50% 0%, 0 0; }
+  to { background-position: 30% 20%, 70% 80%, 20% 40%, 0 0; }
 }
 
 .forbiddenMessage {
