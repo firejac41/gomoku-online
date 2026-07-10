@@ -25,6 +25,121 @@ body {
   font-family: "Malgun Gothic", Arial, Helvetica, sans-serif;
 }
 
+/* ===== 홈페이지 시안 ===== */
+
+.homePage {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+  padding: 24px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.homeBgGrid {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image:
+    linear-gradient(rgba(240, 240, 240, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240, 240, 240, 0.06) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 72%);
+  mask-image: radial-gradient(ellipse at center, black 0%, transparent 72%);
+}
+.homeGlow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at 50% 32%, rgba(254, 202, 87, 0.16), transparent 55%);
+  pointer-events: none;
+}
+.homeStoneBlur {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  filter: blur(70px);
+  z-index: -1;
+  pointer-events: none;
+}
+.homeStoneBlur.black {
+  background: #000;
+  opacity: 0.35;
+  top: -100px;
+  left: -100px;
+}
+.homeStoneBlur.white {
+  background: #fff;
+  opacity: 0.08;
+  bottom: -120px;
+  right: -120px;
+}
+
+.homeTitle {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin: 0;
+  background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #ff6b6b);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: prismSweep 6s linear infinite;
+}
+.homeSubtitle {
+  font-size: 15px;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.homeButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  width: min(380px, 90vw);
+}
+.homeButton {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f0f0f0;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.homeButton:hover {
+  transform: translateY(-3px);
+  border-color: #feca57;
+  background: rgba(255, 255, 255, 0.08);
+}
+.homeButtonIcon {
+  font-size: 24px;
+  line-height: 1;
+}
+.homeButtonText {
+  display: flex;
+  flex-direction: column;
+}
+.homeButtonText strong {
+  font-size: 16px;
+}
+.homeButtonText span {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-top: 2px;
+}
+
 /* ===== 오목 증강전 공용 스타일 ===== */
 
 .bigButton {
@@ -44,6 +159,10 @@ body {
   background: #d9a066;
   border-radius: 8px;
   cursor: pointer;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  touch-action: manipulation;
 }
 
 .forbiddenMessage {
@@ -332,4 +451,50 @@ body {
   background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* ===== 모바일 반응형 (PC 레이아웃은 그대로 두고 좁은 화면에서만 분기) ===== */
+@media (max-width: 700px) {
+  .gameLayout {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 0 12px;
+    box-sizing: border-box;
+    gap: 14px;
+  }
+  .augmentPanel {
+    width: 100%;
+    max-width: 480px;
+    min-height: unset;
+    box-sizing: border-box;
+  }
+  #gomoku-board {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .augmentSelectCards {
+    flex-wrap: wrap;
+    justify-content: center;
+    /* flex-wrap은 컨테이너 너비가 정해져 있어야 실제로 줄바꿈됨 (auto 너비면 줄바꿈 없이 넘침) */
+    width: min(92vw, 420px);
+    margin: 0 auto;
+  }
+  .augmentCard {
+    width: 140px;
+    min-height: 180px;
+  }
+  .homeTitle {
+    font-size: 40px;
+  }
+  /* 데스크탑은 패널 옆(보드 쪽)으로 튀어나가게 배치하지만, 모바일은 패널이 전체 폭이라
+     옆으로 밀면 화면 밖으로 나가서 안 보임 - 카드 바로 아래에 펼치도록 변경 */
+  .augmentTooltip {
+    left: 0;
+    right: 0;
+    top: 100%;
+    width: auto;
+    margin-top: 6px;
+  }
 }

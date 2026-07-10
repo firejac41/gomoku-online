@@ -202,9 +202,13 @@ export default function GomokuBoard({
 
   function handleClick(e) {
     if (disabled) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    // 모바일에서 CSS로 캔버스를 축소 표시할 때, 실제 캔버스 해상도와 화면 표시 크기가 달라지므로 비율 보정
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
     const x = Math.round((mouseX - PADDING) / CELL);
     const y = Math.round((mouseY - PADDING) / CELL);
     if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
