@@ -130,25 +130,33 @@ export default function QuickMatchPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-4">
-      <h1 className="text-2xl font-bold">온라인 대전 (빠른 매칭)</h1>
+    <main className="subPage">
+      <div className="homeBgGrid" aria-hidden="true" />
+      <div className="homeGlow" aria-hidden="true" />
+      <div className="homeStoneBlur black" aria-hidden="true" />
+      <div className="homeStoneBlur white" aria-hidden="true" />
 
-      {matching ? (
-        <>
-          <p className="opacity-80 max-w-sm">상대를 찾는 중이에요...</p>
-          <button className="bigButton" onClick={handleCancelMatch}>취소</button>
-        </>
-      ) : (
-        <>
-          <p className="opacity-80 max-w-sm">
-            지금 대기 중인 다른 사람과 바로 짝지어드려요.
-          </p>
-          <button className="bigButton" onClick={handleQuickMatch}>빠른 대전 찾기</button>
-        </>
-      )}
+      <div className="subPageCard">
+        <span className="homeButtonIcon">⚡</span>
+        <h1 className="subPageTitle">온라인 대전 (빠른 매칭)</h1>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
-      <Link href="/" className="text-sm underline opacity-70 mt-2">← 처음으로</Link>
+        {matching ? (
+          <>
+            <p className="subPageDesc">상대를 찾는 중이에요...</p>
+            <button className="bigButton" onClick={handleCancelMatch}>취소</button>
+          </>
+        ) : (
+          <>
+            <p className="subPageDesc">
+              지금 대기 중인 다른 사람과 바로 짝지어드려요.
+            </p>
+            <button className="bigButton" onClick={handleQuickMatch}>빠른 대전 찾기</button>
+          </>
+        )}
+
+        {error && <p className="subPageError">{error}</p>}
+      </div>
+      <Link href="/" className="subPageBackLink">← 처음으로</Link>
     </main>
   );
 }

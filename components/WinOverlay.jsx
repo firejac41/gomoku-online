@@ -20,12 +20,14 @@ export default function WinOverlay({ message, rematchRequested, onRequestRematch
 
   return (
     <div className="winOverlay">
-      <h2>{message}</h2>
-      <div className="rematchButtons">
-        {renderButton(1, "⚫ 흑돌")}
-        {renderButton(2, "⚪ 백돌")}
+      <div className="winOverlayCard">
+        <h2>{message}</h2>
+        <div className="rematchButtons">
+          {renderButton(1, "⚫ 흑돌")}
+          {renderButton(2, "⚪ 백돌")}
+        </div>
+        <p className="rematchHint">둘 다 재도전을 눌러야 새 판이 시작돼요</p>
       </div>
-      <p className="rematchHint">둘 다 재도전을 눌러야 새 판이 시작돼요</p>
     </div>
   );
 }

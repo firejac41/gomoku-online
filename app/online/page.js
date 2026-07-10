@@ -34,16 +34,24 @@ export default function OnlinePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-4">
-      <h1 className="text-2xl font-bold">온라인 대전 (링크로 초대)</h1>
-      <p className="opacity-80 max-w-sm">
-        방을 만들면 공유 링크가 생겨요. 그 링크를 상대방에게 보내면 같은 판에서 실시간으로 대전할 수 있어요.
-      </p>
-      <button className="bigButton" onClick={handleCreateRoom} disabled={creating}>
-        {creating ? "방 만드는 중..." : "방 만들기"}
-      </button>
-      {error && <p className="text-red-400 text-sm">{error}</p>}
-      <Link href="/" className="text-sm underline opacity-70 mt-2">← 처음으로</Link>
+    <main className="subPage">
+      <div className="homeBgGrid" aria-hidden="true" />
+      <div className="homeGlow" aria-hidden="true" />
+      <div className="homeStoneBlur black" aria-hidden="true" />
+      <div className="homeStoneBlur white" aria-hidden="true" />
+
+      <div className="subPageCard">
+        <span className="homeButtonIcon">🔗</span>
+        <h1 className="subPageTitle">온라인 대전 (링크로 초대)</h1>
+        <p className="subPageDesc">
+          방을 만들면 공유 링크가 생겨요. 그 링크를 상대방에게 보내면 같은 판에서 실시간으로 대전할 수 있어요.
+        </p>
+        <button className="bigButton" onClick={handleCreateRoom} disabled={creating}>
+          {creating ? "방 만드는 중..." : "방 만들기"}
+        </button>
+        {error && <p className="subPageError">{error}</p>}
+      </div>
+      <Link href="/" className="subPageBackLink">← 처음으로</Link>
     </main>
   );
 }

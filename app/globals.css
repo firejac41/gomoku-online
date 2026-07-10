@@ -234,6 +234,160 @@ body {
   color: #f0f0f0;
 }
 
+/* ===== 서브 페이지 시안 (온라인 대전 링크/빠른 매칭) - 홈페이지와 톤은 맞추되 증강 컨베이어 벨트는 뺀 버전 ===== */
+
+.subPage {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+  padding: 24px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.subPageCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(420px, 92vw);
+  padding: 36px 28px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.subPageTitle {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.subPageDesc {
+  font-size: 14px;
+  opacity: 0.7;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 320px;
+}
+
+.subPageError {
+  font-size: 13px;
+  color: #ff6b6b;
+  margin: 0;
+}
+
+.subPageBackLink {
+  font-size: 13px;
+  opacity: 0.6;
+  text-decoration: underline;
+  margin-top: 4px;
+}
+.subPageBackLink:hover {
+  opacity: 0.9;
+}
+
+/* ===== 인게임 화면 시안 (로컬/온라인 공용) - 홈/서브페이지와 톤만 맞추고 컨베이어 벨트 없이 은은한 그리드 배경만 사용 ===== */
+
+.gamePage {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 32px 16px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.gameTitle {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 2px;
+}
+
+.statusBanner {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 14px;
+  border-radius: 10px;
+  max-width: 380px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid #888;
+}
+.statusBanner.waiting { border-left-color: #6a8caf; }
+.statusBanner.prison { border-left-color: #ff6b6b; }
+.statusBanner.ring { border-left-color: #f5a623; }
+.statusBanner.chaos { border-left-color: #ff9ff3; }
+.statusBanner.roleSwapBanner { border-left-color: #48dbfb; }
+
+.turnIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  min-height: 24px;
+}
+.turnDot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3), 0 0 8px rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+.turnDot.black { background: #1a1a1a; }
+.turnDot.white { background: #f0f0f0; }
+
+.stoneCountText {
+  font-size: 12px;
+  opacity: 0.55;
+  margin-bottom: 2px;
+}
+
+.timerText {
+  font-size: 13px;
+  opacity: 0.65;
+}
+.timerText.urgent {
+  color: #ff6b6b;
+  opacity: 1;
+  font-weight: 700;
+}
+
+.pendingTargetBanner {
+  font-size: 13px;
+  color: #ffd97a;
+  background: rgba(255, 217, 122, 0.08);
+  border: 1px solid rgba(255, 217, 122, 0.3);
+  border-radius: 10px;
+  padding: 6px 14px;
+  margin-bottom: 4px;
+}
+
+.gameBackLink {
+  font-size: 13px;
+  opacity: 0.55;
+  text-decoration: underline;
+  margin-top: 10px;
+}
+.gameBackLink:hover {
+  opacity: 0.85;
+}
+
 /* ===== 오목 증강전 공용 스타일 ===== */
 
 .bigButton {
@@ -269,15 +423,36 @@ body {
 .winOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   gap: 16px;
+  animation: overlayFadeIn 0.3s ease-out;
+}
+.winOverlayCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: min(420px, 90vw);
+  padding: 40px 32px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-sizing: border-box;
 }
 .winOverlay h2 {
-  font-size: 36px;
+  font-size: 32px;
+  margin: 0;
+  background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #ff6b6b);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: prismSweep 6s linear infinite;
 }
 .rematchButtons {
   display: flex;
@@ -298,16 +473,21 @@ body {
 .augmentPanel {
   width: 170px;
   min-height: 600px;
-  background: #3a3a3a;
-  border-radius: 8px;
-  padding: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px;
   text-align: left;
   box-sizing: border-box;
 }
 .augmentPanel h3 {
-  font-size: 14px;
-  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin: 0 0 10px;
+  padding-bottom: 8px;
   text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .augmentPanel ul {
   list-style: none;
@@ -319,10 +499,28 @@ body {
 }
 .augmentPanel li {
   position: relative;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 7px 9px;
+  border-radius: 7px;
   font-size: 12px;
+  color: #f0f0f0;
   cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 3px solid #888;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.augmentPanel li:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.augmentPanel li.tier-silver { border-left-color: #b0b0b0; }
+.augmentPanel li.tier-gold { border-left-color: #e0b23c; }
+.augmentPanel li.tier-prism { border-left-color: #feca57; }
+.augmentPanel li.tier-prism > div:first-child {
+  background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: bold;
 }
 .augmentTooltip {
   position: absolute;
@@ -351,23 +549,18 @@ body {
   margin-top: 4px;
   font-size: 11px;
   padding: 4px 8px;
-  border: none;
+  border: 1px solid rgba(217, 160, 102, 0.4);
   border-radius: 5px;
-  background: #2b2b2b;
-  color: #f0f0f0;
+  background: rgba(217, 160, 102, 0.14);
+  color: #f0d9b8;
   cursor: pointer;
 }
 .abilityButton:hover:not(:disabled) {
-  background: #1a1a1a;
+  background: rgba(217, 160, 102, 0.28);
 }
 .abilityButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-.pendingTargetBanner {
-  font-size: 14px;
-  color: #6a8caf;
-  margin-bottom: 8px;
 }
 .peekedCardNote {
   margin-top: 4px;
@@ -709,6 +902,12 @@ body {
   }
   .homeTitle {
     font-size: 40px;
+  }
+  .subPageTitle {
+    font-size: 21px;
+  }
+  .subPageCard {
+    padding: 30px 20px;
   }
   .homeConveyor {
     display: none;

@@ -168,32 +168,36 @@ export default function LocalGamePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center text-center gap-2 py-8">
-      <h1 className="text-2xl font-bold">오목 (로컬 대전)</h1>
+    <main className="gamePage">
+      <div className="homeBgGrid" aria-hidden="true" />
+      <h1 className="gameTitle">오목 (로컬 대전)</h1>
       {prisonActive && (
-        <div className="text-sm bg-[#3a1a1a] rounded-md px-3 py-2 max-w-sm">
+        <div className="statusBanner prison">
           🔒 '교도소' 발동 중 - 양쪽 모두 프리즘 효과가 비활성화됐어요
         </div>
       )}
       {ringActive && (
-        <div className="text-sm bg-[#3a2a0f] rounded-md px-3 py-2 max-w-sm">
+        <div className="statusBanner ring">
           🥊 '링 위에서 싸우자' 발동 중 - 판이 서서히 좁아지고 있어요
         </div>
       )}
       {chaosActive && (
-        <div className="text-sm bg-[#3a0f2a] rounded-md px-3 py-2 max-w-sm">
+        <div className="statusBanner chaos">
           🌀 '폭주' 발동 중 - 양쪽 다 조작권을 잃고 무작위로 돌을 둬요
         </div>
       )}
       {roleSwapActive && (
-        <div className="text-sm bg-[#0f2a3a] rounded-md px-3 py-2 max-w-sm">
+        <div className="statusBanner roleSwapBanner">
           🔄 '입장 바꿔 생각하기' 발동 중 - 서로 담당하는 돌 색이 뒤바뀌었어요
         </div>
       )}
-      <div className="text-lg mb-1">{gameOver ? "" : (currentColor === 1 ? "흑돌 차례" : "백돌 차례")}</div>
-      <div className="text-xs opacity-60 mb-1">총 {stonesPlaced[1] + stonesPlaced[2]}수 (흑 {countStones(board, 1)} · 백 {countStones(board, 2)})</div>
+      <div className="turnIndicator">
+        {!gameOver && <span className={"turnDot " + (currentColor === 1 ? "black" : "white")} />}
+        {gameOver ? "" : (currentColor === 1 ? "흑돌 차례" : "백돌 차례")}
+      </div>
+      <div className="stoneCountText">총 {stonesPlaced[1] + stonesPlaced[2]}수 (흑 {countStones(board, 1)} · 백 {countStones(board, 2)})</div>
       {isTimerActive && (
-        <div className={"text-sm " + (timeLeft <= 10 ? "text-red-400" : "opacity-70")}>⏱ 남은 시간: {timeLeft}초</div>
+        <div className={"timerText " + (timeLeft <= 10 ? "urgent" : "")}>⏱ 남은 시간: {timeLeft}초</div>
       )}
       {pendingTarget && (
         <div className="pendingTargetBanner">
@@ -242,7 +246,7 @@ export default function LocalGamePage() {
         />
       </div>
 
-      <Link href="/" className="text-sm underline opacity-70 mt-4">← 처음으로</Link>
+      <Link href="/" className="gameBackLink">← 처음으로</Link>
 
       {gameOver && (
         <WinOverlay
