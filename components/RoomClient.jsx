@@ -86,6 +86,27 @@ export default function RoomClient({ roomId }) {
   const prevStoneCountRef = useRef(null);
   const hadAugmentSelectRef = useRef(false);
 
+  // 인게임 채팅 - DB에 저장하지 않고 Supabase Realtime Broadcast로만 실시간 전달 (게임 상태 리듀서와 완전히 분리)
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [lastSeenChatCount, setLastSeenChatCount] = useState(0);
+  const channelRef = useRef(null);
+  const chatListRef = useRef(null);
+  const hasUnreadChat = !chatOpen && chatMessages.length > lastSeenChatCount;
+
+  // 채팅창을 열면 그 시점까지 온 메시지는 전부 "읽음" 처리
+  useEffect(() => {
+    if (chatOpen) setLastSeenChatCount(chatMessages.length);
+  }, [chatOpen, chatMessages]);
+
+  // 새 메시지가 오거나 채팅창을 열면 항상 맨 아래로 스크롤
+  useEffect(() => {
+    if (chatListRef.current) {
+      chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+    }
+  }, [chatMessages, chatOpen]);
+
   useEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
@@ -155,13 +176,29 @@ export default function RoomClient({ roomId }) {
           setRoomMeta({ black_claimed: payload.new.black_claimed, white_claimed: payload.new.white_claimed });
         }
       )
+      // 채팅은 DB에 남기지 않고 이 채널의 broadcast 이벤트로만 주고받음 (postgres_changes와 채널 공유)
+      .on("broadcast", { event: "chat" }, ({ payload }) => {
+        setChatMessages((prev) => [...prev, payload]);
+      })
       .subscribe();
+    channelRef.current = channel;
 
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [roomId]);
+
+  // 보낸 사람 본인에게는 broadcast가 기본적으로 돌아오지 않아서, 보낼 때 로컬에도 바로 추가해줌
+  function sendChatMessage() {
+    const text = chatInput.trim();
+    if (!text || !channelRef.current) return;
+    if (myColor !== 1 && myColor !== 2) return; // 관전자는 채팅 못 보냄 (조회만 가능)
+    const payload = { color: myBoardColor, text: text.slice(0, 200), ts: Date.now() };
+    channelRef.current.send({ type: "broadcast", event: "chat", payload });
+    setChatMessages((prev) => [...prev, payload]);
+    setChatInput("");
+  }
 
   async function pushState(newState) {
     setGameState(newState);
@@ -484,6 +521,47 @@ export default function RoomClient({ roomId }) {
           </div>
         </div>
       )}
+
+      <div className="chatWidget">
+        {chatOpen && (
+          <div className="chatPanel">
+            <div className="chatHeader">
+              <span>채팅</span>
+              <button className="chatCloseButton" onClick={() => setChatOpen(false)}>✕</button>
+            </div>
+            <div className="chatMessages" ref={chatListRef}>
+              {chatMessages.length === 0 && <div className="chatEmptyHint">아직 채팅이 없어요</div>}
+              {chatMessages.map((m, i) => (
+                <div key={i} className="chatMessage">
+                  <span className={"chatSender " + (m.color === 1 ? "chatBlack" : "chatWhite")}>
+                    {m.color === 1 ? "⚫ 흑돌:" : "⚪ 백돌:"}
+                  </span>
+                  <span className="chatText">{m.text}</span>
+                </div>
+              ))}
+            </div>
+            {(myColor === 1 || myColor === 2) && (
+              <div className="chatInputRow">
+                <input
+                  className="chatInput"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") sendChatMessage();
+                  }}
+                  placeholder="메시지 입력..."
+                  maxLength={200}
+                />
+                <button className="chatSendButton" onClick={sendChatMessage}>전송</button>
+              </div>
+            )}
+          </div>
+        )}
+        <button className="chatToggleButton" onClick={() => setChatOpen((prev) => !prev)}>
+          💬
+          {hasUnreadChat && <span className="chatUnreadDot" />}
+        </button>
+      </div>
     </main>
   );
 }
