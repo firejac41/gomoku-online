@@ -19,6 +19,7 @@ const FOG_BAND_PERCENT = ((PADDING + 1.5 * CELL) / CANVAS_SIZE) * 100;
 // winCells: 직감으로 강조할, 지금 두면 바로 이기는 내 칸(초록 테두리)
 // lastOpponentMoveCell: 상대가 마지막으로 둔 자리(빨간 사각 테두리) - 지금 판이 어디서 바뀌었는지 한눈에 보이게
 // ringBounds: 링 위에서 싸우자로 좁혀 들어간 안쪽 범위 {minX,maxX,minY,maxY} - 바깥쪽을 어둡게 덮어서 표시
+// ringFinalBounds: 링이 최종적으로 도착할 위치(발동 즉시 공개) - 지금 레벨과 무관하게 항상 같은 자리에 노란 점선으로 미리 표시
 // ultimatumCell: 내가 선언한 최후통첩 칸(보라 사각 점선 - 나에게만 보임), fadedUltimatumCell: 상대가 선언한 칸(로컬 모드에서만 흐리게 표시)
 // foresightCells: 예지로 강조할, 상대가 다음에 두면 열린 3목이 되는 빈 칸(노란 다이아몬드)
 // checkerboardActive: 체크무늬 발동 중이면 (x+y) 짝수 칸에 옅은 체크 타일 하이라이트를 깔아줌
@@ -36,6 +37,7 @@ export default function GomokuBoard({
   winCells = [],
   lastOpponentMoveCell = null,
   ringBounds = null,
+  ringFinalBounds = null,
   ultimatumCell = null,
   fadedUltimatumCell = null,
   foresightCells = [],
@@ -91,6 +93,20 @@ export default function GomokuBoard({
       ctx.strokeStyle = "#ff9800";
       ctx.lineWidth = 3;
       ctx.strokeRect(left, top, right - left, bottom - top);
+    }
+
+    // 링 위에서 싸우자: 발동 즉시 최종적으로 좁혀질 위치를 노란 점선으로 미리 보여줌 (현재 레벨과 무관하게 항상 같은 자리)
+    if (ringFinalBounds) {
+      const left = PADDING + (ringFinalBounds.minX - 0.5) * CELL;
+      const right = PADDING + (ringFinalBounds.maxX + 0.5) * CELL;
+      const top = PADDING + (ringFinalBounds.minY - 0.5) * CELL;
+      const bottom = PADDING + (ringFinalBounds.maxY + 0.5) * CELL;
+      ctx.save();
+      ctx.setLineDash([8, 6]);
+      ctx.strokeStyle = "#ffd54f";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(left, top, right - left, bottom - top);
+      ctx.restore();
     }
 
     function drawX(x, y) {
@@ -236,7 +252,7 @@ export default function GomokuBoard({
         }
       }
     }
-  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ultimatumCell, fadedUltimatumCell, foresightCells, checkerboardActive]);
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ringFinalBounds, ultimatumCell, fadedUltimatumCell, foresightCells, checkerboardActive]);
 
   function handleClick(e) {
     if (disabled) return;
