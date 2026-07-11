@@ -14,6 +14,7 @@ import {
   findOpenThreeSetupCells,
   getEffectiveAugmentIds,
   getRingBounds,
+  getRingFinalBounds,
   colorForPlayer,
   countStones,
   ENHANCEABLE_AUGMENT_IDS,
@@ -45,8 +46,8 @@ export default function LocalGamePage() {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
-    ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
-    fogTurnsLeft, checkerboardActive, timeLimitOverride,
+    ringActive, ringStartMove, ringTarget, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -84,9 +85,11 @@ export default function LocalGamePage() {
   }, [turnKey, isTimerActive]);
 
   const ringBounds = useMemo(
-    () => getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]),
-    [ringStartMove, stonesPlaced]
+    () => getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2], ringTarget),
+    [ringStartMove, stonesPlaced, ringTarget]
   );
+  // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
+  const ringFinalBounds = useMemo(() => (ringActive ? getRingFinalBounds(ringTarget) : null), [ringActive, ringTarget]);
 
   // 금수/안내 메시지를 1.5초 후 자동으로 지움
   useEffect(() => {
@@ -267,6 +270,7 @@ export default function LocalGamePage() {
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
           onPickCardTarget={handlePickCardTarget}
+          pokerFaceReveal={pokerFacePending[1]}
         />
         <GomokuBoard
           board={board}
@@ -281,6 +285,7 @@ export default function LocalGamePage() {
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
           ringBounds={ringBounds}
+          ringFinalBounds={ringFinalBounds}
           ultimatumCell={ultimatumCell[currentPlayer]}
           fadedUltimatumCell={ultimatumCell[opponent]}
           foresightCells={foresightCells}
@@ -299,6 +304,7 @@ export default function LocalGamePage() {
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}
           onPickCardTarget={handlePickCardTarget}
+          pokerFaceReveal={pokerFacePending[2]}
         />
       </div>
 

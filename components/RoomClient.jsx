@@ -11,6 +11,7 @@ import {
   findOpenThreeSetupCells,
   getEffectiveAugmentIds,
   getRingBounds,
+  getRingFinalBounds,
   colorForPlayer,
   countStones,
   ENHANCEABLE_AUGMENT_IDS,
@@ -390,10 +391,12 @@ export default function RoomClient({ roomId }) {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
-    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
-    fogTurnsLeft, checkerboardActive, timeLimitOverride,
+    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = gameState;
-  const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]);
+  const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2], ringTarget);
+  // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
+  const ringFinalBounds = ringActive ? getRingFinalBounds(ringTarget) : null;
   // roleLabel은 "지금 실제로 보드 위에 놓이는 내 돌 색"을 보여줘야 하므로 myBoardColor 기준
   // (myColor까지만 쓰면 입장 바꿔 생각하기가 켜졌을 때 실제 색과 다르게 표시됨)
   const roleLabel = myBoardColor === 1 ? "흑돌" : myBoardColor === 2 ? "백돌" : "관전";
@@ -517,6 +520,7 @@ export default function RoomClient({ roomId }) {
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1 && myColor === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
           onPickCardTarget={handlePickCardTarget}
+          pokerFaceReveal={myColor === 1 ? pokerFacePending[1] : null}
         />
         <GomokuBoard
           board={board}
@@ -531,6 +535,7 @@ export default function RoomClient({ roomId }) {
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
           ringBounds={ringBounds}
+          ringFinalBounds={ringFinalBounds}
           ultimatumCell={myColor === 1 || myColor === 2 ? ultimatumCell[myColor] : null}
           foresightCells={foresightCells}
           checkerboardActive={checkerboardActive}
@@ -548,6 +553,7 @@ export default function RoomClient({ roomId }) {
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2 && myColor === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}
           onPickCardTarget={handlePickCardTarget}
+          pokerFaceReveal={myColor === 2 ? pokerFacePending[2] : null}
         />
       </div>
 
