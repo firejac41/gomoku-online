@@ -29,6 +29,7 @@ const ACTIVE_ABILITIES = {
   fog: "상대 시야 가리기 (3턴)",
   discard: "카드 파기 (같은 등급 새 카드로)",
   appraisal: "카드 강화 (이름+)",
+  pokerFace: "포커페이스 사용",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
@@ -37,6 +38,7 @@ const ACTIVE_ABILITIES = {
 // cardTargetActive: 파기/감정 사용 중 이 패널의 카드를 대상으로 골라야 하면 true (보드 칸이 아니라 카드 자체를 클릭해서 선택)
 // eligibleCardIds: cardTargetActive일 때 실제로 고를 수 있는 카드 id 목록 (강조 표시용, 아닌 카드는 클릭해도 무시됨)
 // onPickCardTarget: cardTargetActive일 때 카드를 클릭하면 호출됨
+// pokerFaceReveal: 포커페이스 사용 후 대기 중인 { turnsLeft, real } - 본인 패널에만 넘겨야 함(상대에게 새면 의미 없어짐)
 export default function AugmentPanel({
   title,
   augments,
@@ -49,6 +51,7 @@ export default function AugmentPanel({
   cardTargetActive = false,
   eligibleCardIds = [],
   onPickCardTarget = null,
+  pokerFaceReveal = null,
 }) {
   const [openIndex, setOpenIndex] = useState(null);
 
@@ -89,6 +92,11 @@ export default function AugmentPanel({
               <div>{augment.quest ? "퀘스트: " + augment.name : augment.name}</div>
               {augment.id === "peek" && peekedCard && (
                 <div className="peekedCardNote">예약된 카드: '{peekedCard.name}'</div>
+              )}
+              {augment.id === "pokerFace" && pokerFaceReveal && (
+                <div className="peekedCardNote">
+                  포커페이스: {pokerFaceReveal.real ? "진짜예요! (3턴 뒤 발동)" : "가짜예요 (3턴 뒤 조용히 사라짐)"}
+                </div>
               )}
               {abilityLabel && (
                 <button

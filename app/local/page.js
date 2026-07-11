@@ -46,7 +46,7 @@ export default function LocalGamePage() {
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
     ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
-    fogTurnsLeft, checkerboardActive, timeLimitOverride,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -267,6 +267,7 @@ export default function LocalGamePage() {
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
           onPickCardTarget={handlePickCardTarget}
+          pokerFaceReveal={pokerFacePending[1]}
         />
         <GomokuBoard
           board={board}
@@ -299,6 +300,7 @@ export default function LocalGamePage() {
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}
           onPickCardTarget={handlePickCardTarget}
+          pokerFaceReveal={pokerFacePending[2]}
         />
       </div>
 

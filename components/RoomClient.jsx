@@ -391,7 +391,7 @@ export default function RoomClient({ roomId }) {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
     deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
-    fogTurnsLeft, checkerboardActive, timeLimitOverride,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2]);
   // roleLabel은 "지금 실제로 보드 위에 놓이는 내 돌 색"을 보여줘야 하므로 myBoardColor 기준
@@ -517,6 +517,7 @@ export default function RoomClient({ roomId }) {
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1 && myColor === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
           onPickCardTarget={handlePickCardTarget}
+          pokerFaceReveal={myColor === 1 ? pokerFacePending[1] : null}
         />
         <GomokuBoard
           board={board}
@@ -548,6 +549,7 @@ export default function RoomClient({ roomId }) {
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2 && myColor === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}
           onPickCardTarget={handlePickCardTarget}
+          pokerFaceReveal={myColor === 2 ? pokerFacePending[2] : null}
         />
       </div>
 
