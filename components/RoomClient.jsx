@@ -568,6 +568,7 @@ export default function RoomClient({ roomId }) {
           rematchRequested={rematchRequested}
           onRequestRematch={handleRequestRematch}
           myRole={myColor}
+          roleSwapActive={roleSwapActive}
         />
       )}
 

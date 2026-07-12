@@ -318,6 +318,7 @@ export default function LocalGamePage() {
           rematchRequested={rematchRequested}
           onRequestRematch={(player) => dispatch({ type: "REQUEST_REMATCH", player })}
           myRole={null}
+          roleSwapActive={roleSwapActive}
         />
       )}
 
