@@ -392,10 +392,10 @@ export default function RoomClient({ roomId }) {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
-    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = gameState;
-  const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2], ringTarget);
+  const ringBounds = getRingBounds(ringStartMove, placementClock, ringTarget);
   // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
   const ringFinalBounds = ringActive ? getRingFinalBounds(ringTarget) : null;
   // roleLabel은 "지금 실제로 보드 위에 놓이는 내 돌 색"을 보여줘야 하므로 myBoardColor 기준
@@ -408,12 +408,15 @@ export default function RoomClient({ roomId }) {
   const lastOpponentMoveCell = lastMove[currentPlayer === 1 ? 2 : 1];
 
   // 진하게: 나를 실제로 막는 칸(역병으로 죽은 칸도 포함, 양쪽 다 막힘) / 흐리게: 내가 상대에게 건 금지라 나는 상관없는 칸
+  // 영구 봉쇄는 프리즘 등급이라 교도소가 발동하면 실제로 풀리므로(gameReducer의 isBlocked 참고), 화면 표시도
+  // 같이 꺼야 함 - 안 그러면 이미 클릭 가능해진 칸에 여전히 막힌 X 표시가 남아서 헷갈림
+  const effectivePermaBlockedCells = prisonActive ? { 1: [], 2: [] } : permaBlockedCells;
   const boardBlockedCells = myColor === 1 || myColor === 2
-    ? [...blockedCells[myColor], ...permaBlockedCells[myColor], ...deadCells]
+    ? [...blockedCells[myColor], ...effectivePermaBlockedCells[myColor], ...deadCells]
     : [...deadCells];
   const fadedBlockedCells = myColor === 1 || myColor === 2
-    ? [...blockedCells[opponentColor], ...permaBlockedCells[opponentColor]]
-    : [...blockedCells[1], ...permaBlockedCells[1], ...blockedCells[2], ...permaBlockedCells[2]];
+    ? [...blockedCells[opponentColor], ...effectivePermaBlockedCells[opponentColor]]
+    : [...blockedCells[1], ...effectivePermaBlockedCells[1], ...blockedCells[2], ...effectivePermaBlockedCells[2]];
 
   // 감시탑은 숨김이 없어서 누구든 양쪽에 세워진 걸 다 보여줌
   const boardWatchtowerCells = [...watchtowerCells[1], ...watchtowerCells[2]];
@@ -566,6 +569,7 @@ export default function RoomClient({ roomId }) {
           rematchRequested={rematchRequested}
           onRequestRematch={handleRequestRematch}
           myRole={myColor}
+          roleSwapActive={roleSwapActive}
         />
       )}
 

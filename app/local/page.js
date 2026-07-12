@@ -47,7 +47,7 @@ export default function LocalGamePage() {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
-    ringActive, ringStartMove, ringTarget, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = state;
 
@@ -86,8 +86,8 @@ export default function LocalGamePage() {
   }, [turnKey, isTimerActive]);
 
   const ringBounds = useMemo(
-    () => getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2], ringTarget),
-    [ringStartMove, stonesPlaced, ringTarget]
+    () => getRingBounds(ringStartMove, placementClock, ringTarget),
+    [ringStartMove, placementClock, ringTarget]
   );
   // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
   const ringFinalBounds = useMemo(() => (ringActive ? getRingFinalBounds(ringTarget) : null), [ringActive, ringTarget]);
@@ -124,13 +124,15 @@ export default function LocalGamePage() {
   // 입장 바꿔 생각하기: 신원(currentPlayer/opponent)과 실제로 보드에 놓이는 돌 색이 다를 수 있음
   const currentColor = colorForPlayer(currentPlayer, roleSwapActive);
   const opponentColor = colorForPlayer(opponent, roleSwapActive);
+  // 영구 봉쇄는 프리즘 등급이라 교도소가 발동하면 실제로 풀리므로(gameReducer의 isBlocked 참고), 화면 표시도
+  // 같이 꺼야 함 - 안 그러면 이미 클릭 가능해진 칸에 여전히 막힌 X 표시가 남아서 헷갈림
   const boardBlockedCells = useMemo(
-    () => [...blockedCells[currentPlayer], ...permaBlockedCells[currentPlayer], ...deadCells],
-    [blockedCells, permaBlockedCells, deadCells, currentPlayer]
+    () => [...blockedCells[currentPlayer], ...(prisonActive ? [] : permaBlockedCells[currentPlayer]), ...deadCells],
+    [blockedCells, permaBlockedCells, deadCells, currentPlayer, prisonActive]
   );
   const fadedBlockedCells = useMemo(
-    () => [...blockedCells[opponent], ...permaBlockedCells[opponent]],
-    [blockedCells, permaBlockedCells, opponent]
+    () => [...blockedCells[opponent], ...(prisonActive ? [] : permaBlockedCells[opponent])],
+    [blockedCells, permaBlockedCells, opponent, prisonActive]
   );
   // 감시탑은 숨김이 없어서 누구 턴이든 양쪽에 세워진 걸 다 보여줌
   const boardWatchtowerCells = useMemo(
@@ -317,6 +319,7 @@ export default function LocalGamePage() {
           rematchRequested={rematchRequested}
           onRequestRematch={(player) => dispatch({ type: "REQUEST_REMATCH", player })}
           myRole={null}
+          roleSwapActive={roleSwapActive}
         />
       )}
 
