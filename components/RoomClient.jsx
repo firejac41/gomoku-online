@@ -391,10 +391,10 @@ export default function RoomClient({ roomId }) {
   const {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
-    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = gameState;
-  const ringBounds = getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2], ringTarget);
+  const ringBounds = getRingBounds(ringStartMove, placementClock, ringTarget);
   // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
   const ringFinalBounds = ringActive ? getRingFinalBounds(ringTarget) : null;
   // roleLabel은 "지금 실제로 보드 위에 놓이는 내 돌 색"을 보여줘야 하므로 myBoardColor 기준

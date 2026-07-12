@@ -46,7 +46,7 @@ export default function LocalGamePage() {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
-    ringActive, ringStartMove, ringTarget, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = state;
 
@@ -85,8 +85,8 @@ export default function LocalGamePage() {
   }, [turnKey, isTimerActive]);
 
   const ringBounds = useMemo(
-    () => getRingBounds(ringStartMove, stonesPlaced[1] + stonesPlaced[2], ringTarget),
-    [ringStartMove, stonesPlaced, ringTarget]
+    () => getRingBounds(ringStartMove, placementClock, ringTarget),
+    [ringStartMove, placementClock, ringTarget]
   );
   // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
   const ringFinalBounds = useMemo(() => (ringActive ? getRingFinalBounds(ringTarget) : null), [ringActive, ringTarget]);
