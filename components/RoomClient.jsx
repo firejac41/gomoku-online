@@ -407,12 +407,15 @@ export default function RoomClient({ roomId }) {
   const lastOpponentMoveCell = lastMove[currentPlayer === 1 ? 2 : 1];
 
   // 진하게: 나를 실제로 막는 칸(역병으로 죽은 칸도 포함, 양쪽 다 막힘) / 흐리게: 내가 상대에게 건 금지라 나는 상관없는 칸
+  // 영구 봉쇄는 프리즘 등급이라 교도소가 발동하면 실제로 풀리므로(gameReducer의 isBlocked 참고), 화면 표시도
+  // 같이 꺼야 함 - 안 그러면 이미 클릭 가능해진 칸에 여전히 막힌 X 표시가 남아서 헷갈림
+  const effectivePermaBlockedCells = prisonActive ? { 1: [], 2: [] } : permaBlockedCells;
   const boardBlockedCells = myColor === 1 || myColor === 2
-    ? [...blockedCells[myColor], ...permaBlockedCells[myColor], ...deadCells]
+    ? [...blockedCells[myColor], ...effectivePermaBlockedCells[myColor], ...deadCells]
     : [...deadCells];
   const fadedBlockedCells = myColor === 1 || myColor === 2
-    ? [...blockedCells[opponentColor], ...permaBlockedCells[opponentColor]]
-    : [...blockedCells[1], ...permaBlockedCells[1], ...blockedCells[2], ...permaBlockedCells[2]];
+    ? [...blockedCells[opponentColor], ...effectivePermaBlockedCells[opponentColor]]
+    : [...blockedCells[1], ...effectivePermaBlockedCells[1], ...blockedCells[2], ...effectivePermaBlockedCells[2]];
 
   // 감시탑은 숨김이 없어서 누구든 양쪽에 세워진 걸 다 보여줌
   const boardWatchtowerCells = [...watchtowerCells[1], ...watchtowerCells[2]];

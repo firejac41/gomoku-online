@@ -123,13 +123,15 @@ export default function LocalGamePage() {
   // 입장 바꿔 생각하기: 신원(currentPlayer/opponent)과 실제로 보드에 놓이는 돌 색이 다를 수 있음
   const currentColor = colorForPlayer(currentPlayer, roleSwapActive);
   const opponentColor = colorForPlayer(opponent, roleSwapActive);
+  // 영구 봉쇄는 프리즘 등급이라 교도소가 발동하면 실제로 풀리므로(gameReducer의 isBlocked 참고), 화면 표시도
+  // 같이 꺼야 함 - 안 그러면 이미 클릭 가능해진 칸에 여전히 막힌 X 표시가 남아서 헷갈림
   const boardBlockedCells = useMemo(
-    () => [...blockedCells[currentPlayer], ...permaBlockedCells[currentPlayer], ...deadCells],
-    [blockedCells, permaBlockedCells, deadCells, currentPlayer]
+    () => [...blockedCells[currentPlayer], ...(prisonActive ? [] : permaBlockedCells[currentPlayer]), ...deadCells],
+    [blockedCells, permaBlockedCells, deadCells, currentPlayer, prisonActive]
   );
   const fadedBlockedCells = useMemo(
-    () => [...blockedCells[opponent], ...permaBlockedCells[opponent]],
-    [blockedCells, permaBlockedCells, opponent]
+    () => [...blockedCells[opponent], ...(prisonActive ? [] : permaBlockedCells[opponent])],
+    [blockedCells, permaBlockedCells, opponent, prisonActive]
   );
   // 감시탑은 숨김이 없어서 누구 턴이든 양쪽에 세워진 걸 다 보여줌
   const boardWatchtowerCells = useMemo(
