@@ -32,6 +32,7 @@ const TARGET_HINT = {
   collapse: "중심으로 삼을 칸을 선택하세요 (3x3이 사라져요)",
   discard: "버릴 증강 카드를 내 패널에서 선택하세요",
   appraisal: "강화할 증강 카드를 내 패널에서 선택하세요",
+  ward: "일직선이 되는 두 칸을 선택하세요 (그 사이가 양쪽 다 영원히 막혀요)",
 };
 
 function relocateHint(pendingTarget) {
