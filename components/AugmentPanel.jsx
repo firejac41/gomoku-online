@@ -30,6 +30,8 @@ const ACTIVE_ABILITIES = {
   discard: "카드 파기 (같은 등급 새 카드로)",
   appraisal: "카드 강화 (이름+)",
   pokerFace: "포커페이스 사용",
+  timeCollapse: "시공간 붕괴로 되돌리기 (사용하면 턴 넘어감)",
+  ward: "결계 치기 (칸 2개 선택)",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
