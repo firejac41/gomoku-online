@@ -21,6 +21,7 @@ import {
   ENHANCEABLE_AUGMENT_IDS,
 } from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
+import { useYourTurnAlert } from "@/lib/useYourTurnAlert";
 
 const HUMAN_PLAYER = 1;
 const AI_PLAYER = 2;
@@ -143,6 +144,9 @@ export default function SingleplayerGamePage() {
     hadAugmentSelectRef.current = !!augmentSelect;
   }, [augmentSelect]);
 
+  // AI 턴이 끝나고 사람 차례가 됐을 때만 알림 (AI 턴이 시작될 때는 안 울림)
+  const myTurnPulse = useYourTurnAlert(turnKey, isTimerActive && !aiTurn);
+
   const opponent = currentPlayer === 1 ? 2 : 1;
   const currentColor = colorForPlayer(currentPlayer, roleSwapActive);
   const opponentColor = colorForPlayer(opponent, roleSwapActive);
@@ -261,7 +265,7 @@ export default function SingleplayerGamePage() {
           ⏳ '노즈도르무' 발동 중 - 양쪽 제한시간이 {timeLimitOverride}초로 고정됐어요
         </div>
       )}
-      <div className="turnIndicator">
+      <div className={"turnIndicator" + (myTurnPulse ? " myTurnPulse" : "")}>
         {!gameOver && <span className={"turnDot " + (currentColor === 1 ? "black" : "white")} />}
         {gameOver ? "" : (currentColor === 1 ? "흑돌 차례" : "백돌 차례") + (aiTurn ? " (🤖 AI 생각 중...)" : " (내 차례)")}
       </div>
