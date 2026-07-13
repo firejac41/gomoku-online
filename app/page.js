@@ -55,6 +55,13 @@ export default function HomePage() {
       <p className="homeSubtitle">렌주룰 + 4턴마다 증강 선택</p>
 
       <div className="homeButtons">
+        <Link href="/singleplayer" className="homeButton">
+          <span className="homeButtonIcon">🤖</span>
+          <span className="homeButtonText">
+            <strong>싱글플레이</strong>
+            <span>컴퓨터(AI)와 1대1</span>
+          </span>
+        </Link>
         <Link href="/local" className="homeButton">
           <span className="homeButtonIcon">🎮</span>
           <span className="homeButtonText">
