@@ -367,6 +367,13 @@
 - **수정**: `gomokuEngine.js`에 `isBoardEffectivelyFull(board, ringBounds, checkerboardActive, deadCells)` 추가 - 빈 칸이 있어도 그 칸이 링 바깥/체크무늬 홀수/죽은 칸이면 "이미 다 찬 것"으로 간주하고 건너뜀. `gameReducer.js`의 `CLICK_CELL`에서 기존 `isBoardFull(newBoard)` 호출을 이걸로 교체(링 경계는 이번 수로 갱신된 `stateAfterCapture.placementClock` 기준으로 재계산).
 - **검증**: Node로 재현 스크립트 작성 - 수정 전 코드에 대고 돌려서 "실제로 둘 수 있는 마지막 한 칸"을 채워도 `gameOver`가 `false`로 남는 소프트락을 먼저 재현 확인 → 수정 후 같은 시나리오에서 `gameOver: true, winMessage: "무승부! (보드가 가득 찼어요)"`로 정상 종료되는 것 확인. `next build`도 통과(더미 Supabase 환경변수로 `/online`까지 전체 페이지 빌드 확인).
 
+### 25. 버그 수정: 동전 던지기/생존자/벼랑 끝/파기 등으로 도박(gamble)을 얻으면 죽은 카드가 되던 문제
+사용자 제보: 동전 던지기(coinFlip)의 성공 보너스로 도박(gamble)이 나오면, 그 카드는 아무 효과도 없는 죽은 증강이라 안 나오게 해달라고 요청.
+
+- **원인**: "도박"은 정상적인 증강 선택(PICK_AUGMENT) 화면에서 직접 고를 때만 실버2+골드1/프리즘45% 양자택일 화면(`GAMBLE_OPTIONS`)으로 즉시 이어지는 카드임 (`gameReducer.js`의 `PICK_AUGMENT`에서 `augment.id === "gamble"`일 때만 이 분기를 탐). 그런데 동전 던지기/생존자(퀘스트)/벼랑 끝(퀘스트)/파기(discard 교체)/역감시 보너스/잠복처럼 "카드를 즉시 손에 쥐여주는" 다른 경로로 도박을 얻으면 이 분기를 절대 못 타서, 버튼도 없고 아무 효과도 없는 완전히 죽은 카드로 손에만 남게 됨. 이건 세션 21에서 금지 구역/영구 봉쇄(banZone/permaBlock, "뽑는 즉시 칸을 지정해야만 효과가 생기는 카드")를 위해 만들어뒀던 `IMMEDIATE_TARGET_EXCLUDE_IDS`(이런 카드-only 획득 경로 전부에서 공통으로 제외하는 목록)와 정확히 같은 종류의 문제인데, 그 목록에 "도박"만 빠져 있었음.
+- **수정**: `gameReducer.js`의 `IMMEDIATE_TARGET_EXCLUDE_IDS`에 `"gamble"`을 추가(`["banZone", "permaBlock", "gamble"]`). 이 상수를 이미 쓰고 있던 동전 던지기/잠복/역감시 보너스/파기 교체/도박 자신의 재귀 방지(gambleMixed·gamblePrism1)/포커페이스 강탈 대상 제외는 자동으로 도박까지 같이 제외되게 됨. 다만 **생존자(survivor)**와 **벼랑 끝(brink)** 퀘스트 보상은 이 목록을 아예 안 쓰고 있었음(둘 다 실버 등급만 뽑는데, 기존엔 실버 등급 안에 이 문제가 되는 카드가 없어서 세션 21 감사 때 "이미 정상"으로 분류됐던 것 - 그런데 도박도 실버 등급이라 새로 문제가 됨) - 두 곳 모두 `...IMMEDIATE_TARGET_EXCLUDE_IDS`를 뽑기 제외 목록에 추가함. `gambleMixed`의 실버 뽑기가 기존에 `"gamble"` 문자열을 직접 하드코딩해서 자기 자신을 막던 것도 이 상수 하나로 통일해 정리함. `START_DRAFT_EXCLUDE_IDS`도 기존엔 `IMMEDIATE_TARGET_EXCLUDE_IDS`에 `"gamble"`을 매번 별도로 덧붙이고 있었는데, 이제 상수 자체에 포함되니 그대로 별칭 처리.
+- **검증**: Node로 재현 스크립트 작성 - 수정 전 코드로 동전 던지기 3000회(성공 1475회 중 23회 도박 획득)/생존자 발동 1500회(137회)/파기 실버 교체 1500회(77회) 전부 도박이 실제로 뽑히는 것을 먼저 확인 → 수정 후 같은 시나리오 전부 0회로 완전히 차단되는 것 확인. `next build`도 통과.
+
 ## 현재 증강 전체 목록 (등급별, 총 68개 + 도박 전용 가짜카드 2개)
 
 ### 프리즘 (24)
