@@ -32,6 +32,8 @@ const ACTIVE_ABILITIES = {
   pokerFace: "포커페이스 사용",
   timeCollapse: "시공간 붕괴로 되돌리기 (사용하면 턴 넘어감)",
   ward: "결계 치기 (칸 2개 선택)",
+  prepStance: "방어막 켜기",
+  prevention: "돌 보호 지정",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함

@@ -37,6 +37,7 @@ const TARGET_HINT = {
   discard: "버릴 증강 카드를 내 패널에서 선택하세요",
   appraisal: "강화할 증강 카드를 내 패널에서 선택하세요",
   ward: "일직선이 되는 두 칸을 선택하세요 (그 사이가 양쪽 다 영원히 막혀요)",
+  prevention: "보호할 내 돌을 선택하세요",
 };
 
 function relocateHint(pendingTarget) {
@@ -60,7 +61,7 @@ export default function SingleplayerGamePage() {
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
-    removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown,
+    removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = state;
 
@@ -293,6 +294,8 @@ export default function SingleplayerGamePage() {
             selfUndo: selfUndoCooldown[HUMAN_PLAYER],
             jailbreak: jailbreakCooldown[HUMAN_PLAYER],
             relocate: relocateCooldown[HUMAN_PLAYER],
+            prepStance: prepStanceCooldown[HUMAN_PLAYER],
+            prevention: preventionCooldown[HUMAN_PLAYER],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === HUMAN_PLAYER}
           eligibleCardIds={eligibleCardIdsFor(HUMAN_PLAYER)}
@@ -333,6 +336,8 @@ export default function SingleplayerGamePage() {
             selfUndo: selfUndoCooldown[AI_PLAYER],
             jailbreak: jailbreakCooldown[AI_PLAYER],
             relocate: relocateCooldown[AI_PLAYER],
+            prepStance: prepStanceCooldown[AI_PLAYER],
+            prevention: preventionCooldown[AI_PLAYER],
           }}
           cardTargetActive={false}
           eligibleCardIds={[]}
