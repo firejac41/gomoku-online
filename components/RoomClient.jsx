@@ -393,6 +393,7 @@ export default function RoomClient({ roomId }) {
     board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
     deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, placementClock, ringTarget);
@@ -520,7 +521,13 @@ export default function RoomClient({ roomId }) {
           onUseAbility={(ability) => handleUseAbility(1, ability)}
           side="left"
           peekedCard={myColor === 1 ? peekedCard[1] : null}
-          cooldowns={{ boardFlip: boardFlipCooldown[1] }}
+          cooldowns={{
+            boardFlip: boardFlipCooldown[1],
+            removeStone: removeStoneCooldown[1],
+            selfUndo: selfUndoCooldown[1],
+            jailbreak: jailbreakCooldown[1],
+            relocate: relocateCooldown[1],
+          }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1 && myColor === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
           onPickCardTarget={handlePickCardTarget}
@@ -553,7 +560,13 @@ export default function RoomClient({ roomId }) {
           onUseAbility={(ability) => handleUseAbility(2, ability)}
           side="right"
           peekedCard={myColor === 2 ? peekedCard[2] : null}
-          cooldowns={{ boardFlip: boardFlipCooldown[2] }}
+          cooldowns={{
+            boardFlip: boardFlipCooldown[2],
+            removeStone: removeStoneCooldown[2],
+            selfUndo: selfUndoCooldown[2],
+            jailbreak: jailbreakCooldown[2],
+            relocate: relocateCooldown[2],
+          }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2 && myColor === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}
           onPickCardTarget={handlePickCardTarget}

@@ -60,6 +60,7 @@ export default function SingleplayerGamePage() {
     forbiddenMessage, forbiddenToken, augmentSelect, oneTimeUsed, pendingTarget,
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
+    removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = state;
 
@@ -286,7 +287,13 @@ export default function SingleplayerGamePage() {
           onUseAbility={(ability) => handleUseAbility(HUMAN_PLAYER, ability)}
           side="left"
           peekedCard={peekedCard[HUMAN_PLAYER]}
-          cooldowns={{ boardFlip: boardFlipCooldown[HUMAN_PLAYER] }}
+          cooldowns={{
+            boardFlip: boardFlipCooldown[HUMAN_PLAYER],
+            removeStone: removeStoneCooldown[HUMAN_PLAYER],
+            selfUndo: selfUndoCooldown[HUMAN_PLAYER],
+            jailbreak: jailbreakCooldown[HUMAN_PLAYER],
+            relocate: relocateCooldown[HUMAN_PLAYER],
+          }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === HUMAN_PLAYER}
           eligibleCardIds={eligibleCardIdsFor(HUMAN_PLAYER)}
           onPickCardTarget={handlePickCardTarget}
@@ -320,7 +327,13 @@ export default function SingleplayerGamePage() {
           onUseAbility={() => {}}
           side="right"
           peekedCard={null}
-          cooldowns={{ boardFlip: boardFlipCooldown[AI_PLAYER] }}
+          cooldowns={{
+            boardFlip: boardFlipCooldown[AI_PLAYER],
+            removeStone: removeStoneCooldown[AI_PLAYER],
+            selfUndo: selfUndoCooldown[AI_PLAYER],
+            jailbreak: jailbreakCooldown[AI_PLAYER],
+            relocate: relocateCooldown[AI_PLAYER],
+          }}
           cardTargetActive={false}
           eligibleCardIds={[]}
           onPickCardTarget={() => {}}
