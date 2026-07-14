@@ -17,6 +17,7 @@ import {
   ENHANCEABLE_AUGMENT_IDS,
 } from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
+import { useYourTurnAlert } from "@/lib/useYourTurnAlert";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
 import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
@@ -346,6 +347,9 @@ export default function RoomClient({ roomId }) {
   const [timeLeft, setTimeLeft] = useState(turnTimeLimit);
   const timeoutFiredRef = useRef(false);
 
+  // 온라인 한정: 실제로 지금 내(myColor) 차례가 됐을 때만 알림 (상대 턴 시작/관전자에게는 안 울림)
+  const myTurnPulse = useYourTurnAlert(turnKey, isTimerActive && (myColor === 1 || myColor === 2) && myColor === gameState?.currentPlayer);
+
   // 렌더 중에 turnKey 변화를 감지해서 타이머를 리셋 (effect 안에서 동기적으로 setState하는 대신
   // React가 권장하는 "렌더링 중 상태 조정" 패턴 사용 - https://react.dev/learn/you-might-not-need-an-effect)
   const prevTurnKeyRef = useRef(turnKey);
@@ -497,7 +501,7 @@ export default function RoomClient({ roomId }) {
         </div>
       )}
 
-      <div className="turnIndicator">
+      <div className={"turnIndicator" + (myTurnPulse ? " myTurnPulse" : "")}>
         {!gameOver && <span className={"turnDot " + (currentTurnColor === 1 ? "black" : "white")} />}
         {gameOver ? "" : (currentTurnColor === 1 ? "흑돌 차례" : "백돌 차례")}
       </div>

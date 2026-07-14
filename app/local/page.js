@@ -20,6 +20,7 @@ import {
   ENHANCEABLE_AUGMENT_IDS,
 } from "@/lib/gomokuEngine";
 import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
+import { useYourTurnAlert } from "@/lib/useYourTurnAlert";
 
 const TARGET_HINT = {
   banZone: "빈 칸 3곳을 선택하세요",
@@ -121,6 +122,10 @@ export default function LocalGamePage() {
     }
     hadAugmentSelectRef.current = !!augmentSelect;
   }, [augmentSelect]);
+
+  // 로컬(패스앤플레이)은 "내 턴"이라는 신원 구분이 없어서, 실제로 둘 수 있는 새 턴이 시작될 때마다 알림
+  // (다음 플레이어에게 판을 넘기라는 신호로도 겸함)
+  const myTurnPulse = useYourTurnAlert(turnKey, isTimerActive);
 
   const opponent = currentPlayer === 1 ? 2 : 1;
   // 입장 바꿔 생각하기: 신원(currentPlayer/opponent)과 실제로 보드에 놓이는 돌 색이 다를 수 있음
@@ -246,7 +251,7 @@ export default function LocalGamePage() {
           ⏳ '노즈도르무' 발동 중 - 양쪽 제한시간이 {timeLimitOverride}초로 고정됐어요
         </div>
       )}
-      <div className="turnIndicator">
+      <div className={"turnIndicator" + (myTurnPulse ? " myTurnPulse" : "")}>
         {!gameOver && <span className={"turnDot " + (currentColor === 1 ? "black" : "white")} />}
         {gameOver ? "" : (currentColor === 1 ? "흑돌 차례" : "백돌 차례")}
       </div>
