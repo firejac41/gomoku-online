@@ -51,13 +51,10 @@ export default function LocalGamePage() {
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
-    fogTurnsLeft, dobalTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
   } = state;
 
-  const baseTurnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
-  // 도발: 지금 차례인 사람의 dobalTurnsLeft가 남아있으면 그 사람 제한시간을 절반으로 줄임 (반올림)
-  const turnTimeLimit =
-    dobalTurnsLeft && dobalTurnsLeft[currentPlayer] > 0 ? Math.round(baseTurnTimeLimit / 2) : baseTurnTimeLimit;
+  const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
 
   // 제한시간 타이머: 착수 하나가 끝날 때마다(같은 플레이어가 이어서 두는 질풍노도/양수겹침 보너스 수 포함) 새로 타이머 시작
   const isTimerActive = !gameOver && !augmentSelect && !pendingTarget;

@@ -343,12 +343,7 @@ export default function RoomClient({ roomId }) {
   // 제한시간 타이머: 모든 클라이언트가 카운트다운을 표시하지만, 실제로 시간 초과를 발동시키는 건 지금 차례인 본인 클라이언트뿐
   const isTimerActive = !!gameState && !gameState.gameOver && !gameState.augmentSelect && !gameState.pendingTarget;
   const turnKey = gameState ? gameState.currentPlayer + JSON.stringify(gameState.lastMove[1]) + JSON.stringify(gameState.lastMove[2]) : "";
-  const baseTurnTimeLimit = (gameState && gameState.timeLimitOverride) || DEFAULT_TURN_TIME_LIMIT;
-  // 도발: 지금 차례인 사람의 dobalTurnsLeft가 남아있으면 그 사람 제한시간을 절반으로 줄임 (반올림)
-  const turnTimeLimit =
-    gameState && gameState.dobalTurnsLeft && gameState.dobalTurnsLeft[gameState.currentPlayer] > 0
-      ? Math.round(baseTurnTimeLimit / 2)
-      : baseTurnTimeLimit;
+  const turnTimeLimit = (gameState && gameState.timeLimitOverride) || DEFAULT_TURN_TIME_LIMIT;
   const [timeLeft, setTimeLeft] = useState(turnTimeLimit);
   const timeoutFiredRef = useRef(false);
 

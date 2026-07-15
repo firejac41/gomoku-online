@@ -25,7 +25,6 @@ const ACTIVE_ABILITIES = {
   boardFlip: "내 돌 전부 재배치 (사용하면 턴 넘어감)",
   wipeout: "판 위 돌 전부 지우기 (사용하면 턴 넘어감)",
   fog: "상대 시야 가리기 (3턴)",
-  dobal: "상대 제한시간 절반 (3턴)",
   discard: "카드 파기 (같은 등급 새 카드로)",
   appraisal: "카드 강화 (이름+)",
   pokerFace: "포커페이스 사용",
