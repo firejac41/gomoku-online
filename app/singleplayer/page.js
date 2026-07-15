@@ -39,6 +39,8 @@ const TARGET_HINT = {
   appraisal: "강화할 증강 카드를 내 패널에서 선택하세요",
   ward: "일직선이 되는 두 칸을 선택하세요 (그 사이가 양쪽 다 영원히 막혀요)",
   prevention: "보호할 내 돌을 선택하세요",
+  lifeTransfer: "골드로 교체할 실버 카드를 내 패널에서 선택하세요",
+  reverseScale: "역린으로 표시할 내 돌을 선택하세요",
 };
 
 function relocateHint(pendingTarget) {
@@ -63,7 +65,7 @@ export default function SingleplayerGamePage() {
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
-    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -164,6 +166,10 @@ export default function SingleplayerGamePage() {
     () => [...watchtowerCells[1], ...watchtowerCells[2]],
     [watchtowerCells]
   );
+  const boardReverseScaleCells = useMemo(
+    () => [reverseScaleCell[1], reverseScaleCell[2]].filter(Boolean),
+    [reverseScaleCell]
+  );
   const pendingCells = pendingTarget
     ? pendingTarget.kind === "relocate"
       ? pendingTarget.sourceCell ? [pendingTarget.sourceCell] : []
@@ -220,12 +226,18 @@ export default function SingleplayerGamePage() {
 
   // AI(2번)의 pendingTarget/능력은 사람이 클릭으로 끼어들 수 없어야 하므로, 카드 대상 선택 모드는
   // 항상 사람(1번) 몫일 때만 켜짐 - AI 몫이면 decideAiAction이 알아서 PICK_CARD_TARGET을 디스패치함
-  const cardTargetKind = pendingTarget?.kind === "discard" || pendingTarget?.kind === "appraisal" ? pendingTarget.kind : null;
+  const cardTargetKind =
+    pendingTarget?.kind === "discard" || pendingTarget?.kind === "appraisal" || pendingTarget?.kind === "lifeTransfer"
+      ? pendingTarget.kind
+      : null;
   function eligibleCardIdsFor(player) {
     if (player !== HUMAN_PLAYER) return [];
     if (!cardTargetKind || pendingTarget.player !== player) return [];
     if (cardTargetKind === "discard") {
       return ownedAugments[player].filter((a) => a.id !== "discard").map((a) => a.id);
+    }
+    if (cardTargetKind === "lifeTransfer") {
+      return ownedAugments[player].filter((a) => a.tier === "silver" && a.id !== "lifeTransfer").map((a) => a.id);
     }
     return ownedAugments[player].filter((a) => ENHANCEABLE_AUGMENT_IDS.includes(a.id) && !a.enhanced).map((a) => a.id);
   }
@@ -315,6 +327,7 @@ export default function SingleplayerGamePage() {
           forbiddenCells={forbiddenCells}
           pendingCells={pendingCells}
           watchtowerCells={boardWatchtowerCells}
+          reverseScaleCells={boardReverseScaleCells}
           threatLines={threatLines}
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}

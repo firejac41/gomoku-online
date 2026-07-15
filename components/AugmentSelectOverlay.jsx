@@ -22,7 +22,19 @@ export function ShapeDiagram({ shape, gridSize }) {
 // 4턴마다 뜨는 증강 선택 화면. 카드마다 개별로 1회씩 리롤 가능.
 // 눈 아이콘을 누르고 있는 동안은 카드가 흐려지고 뒤에 있는 보드가 보임 (지금 판 상황을 보고 결정할 수 있게)
 // 도박 증강의 실버3/프리즘1 양자택일 화면일 때는 isGamble=true로 리롤 버튼 없이 렌더링
-export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices, rerolledSlots, onPick, onRerollSlot, isGamble, bonusRerollsRemaining, isStartDraft }) {
+// readOnly: 커닝으로 상대의 선택 화면을 훔쳐볼 때 true - 카드 내용은 그대로 보이지만 클릭/리롤이 전부 비활성화됨
+export default function AugmentSelectOverlay({
+  playerLabel,
+  stoneCount,
+  choices,
+  rerolledSlots,
+  onPick,
+  onRerollSlot,
+  isGamble,
+  bonusRerollsRemaining,
+  isStartDraft,
+  readOnly = false,
+}) {
   const [peeking, setPeeking] = useState(false);
 
   const togglePeek = () => setPeeking((prev) => !prev);
@@ -44,6 +56,7 @@ export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices,
             : isStartDraft
             ? playerLabel + " 시작 증강 선택! (착수 전)"
             : playerLabel + " 증강 선택! (" + stoneCount + "수 달성)"}
+          {readOnly && " 🔎 (커닝 중)"}
         </h2>
         {hasBonusRerolls && <div className="bonusRerollNotice">🎲 축적 보너스 리롤 {bonusRerollsRemaining}회 남음</div>}
         <div className="augmentSelectCards">
@@ -59,13 +72,13 @@ export default function AugmentSelectOverlay({ playerLabel, stoneCount, choices,
                 className={"augmentCard tier-" + augment.tier}
                 style={{ animationDelay: index * 0.12 + "s" }}
               >
-                <div className="cardBody" onClick={() => onPick(augment)}>
+                <div className="cardBody" onClick={readOnly ? undefined : () => onPick(augment)}>
                   <div className="cardTier">{TIER_LABEL[augment.tier]}</div>
                   <div className="cardName">{augment.quest ? "퀘스트: " + augment.name : augment.name}</div>
                   <div className="cardDesc">{augment.desc}</div>
                   {augment.shape && <ShapeDiagram shape={augment.shape} gridSize={augment.shapeGrid} />}
                 </div>
-                {!isGamble && (
+                {!isGamble && !readOnly && (
                   <button
                     className="cardRerollButton"
                     disabled={!canReroll}

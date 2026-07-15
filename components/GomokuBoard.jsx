@@ -24,6 +24,7 @@ const FOG_BAND_PERCENT = ((PADDING + 1.5 * CELL) / CANVAS_SIZE) * 100;
 // foresightCells: 예지로 강조할, 상대가 다음에 두면 열린 3목이 되는 빈 칸(노란 다이아몬드)
 // checkerboardActive: 체크무늬 발동 중이면 (x+y) 짝수 칸에 옅은 체크 타일 하이라이트를 깔아줌
 // fogTurnsLeft: 안개에 걸린 내 남은 턴 수(0보다 크면) - 보드 외곽 2줄을 안개 오버레이로 가림 (온라인 전용)
+// reverseScaleCells: 역린으로 표시된 돌들(빨간 다이아몬드 - 숨김 없이 양쪽 다 보임) - 인접 8칸에 두면 무효화됨
 export default function GomokuBoard({
   board,
   onCellClick,
@@ -43,6 +44,7 @@ export default function GomokuBoard({
   foresightCells = [],
   checkerboardActive = false,
   fogTurnsLeft = 0,
+  reverseScaleCells = [],
 }) {
   const canvasRef = useRef(null);
 
@@ -205,6 +207,22 @@ export default function GomokuBoard({
       ctx.stroke();
     }
 
+    // 역린: 인접 8칸에 두면 무효화되는 표시된 돌 - 빨간 다이아몬드로 표시 (숨김 없이 양쪽 다 보임, 감시탑과 색으로 구분)
+    ctx.strokeStyle = "#e74c3c";
+    ctx.lineWidth = 2;
+    for (const { x, y } of reverseScaleCells) {
+      const cx = PADDING + x * CELL;
+      const cy = PADDING + y * CELL;
+      const half = CELL * 0.38;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - half);
+      ctx.lineTo(cx + half, cy);
+      ctx.lineTo(cx, cy + half);
+      ctx.lineTo(cx - half, cy);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
     // 최후통첩: 내가 선언한 칸 - 보라 점선 사각형으로 나에게만 표시
     function drawUltimatumMark(x, y) {
       const cx = PADDING + x * CELL;
@@ -252,7 +270,7 @@ export default function GomokuBoard({
         }
       }
     }
-  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ringFinalBounds, ultimatumCell, fadedUltimatumCell, foresightCells, checkerboardActive]);
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ringFinalBounds, ultimatumCell, fadedUltimatumCell, foresightCells, checkerboardActive, reverseScaleCells]);
 
   function handleClick(e) {
     if (disabled) return;

@@ -35,6 +35,8 @@ const TARGET_HINT = {
   appraisal: "강화할 증강 카드를 내 패널에서 선택하세요",
   ward: "일직선이 되는 두 칸을 선택하세요 (그 사이가 양쪽 다 영원히 막혀요)",
   prevention: "보호할 내 돌을 선택하세요",
+  lifeTransfer: "골드로 교체할 실버 카드를 내 패널에서 선택하세요",
+  reverseScale: "역린으로 표시할 내 돌을 선택하세요",
 };
 
 function relocateHint(pendingTarget) {
@@ -51,7 +53,7 @@ export default function LocalGamePage() {
     blockedCells, permaBlockedCells, lastMove, watchtowerCells, deadCells, prisonActive, rematchRequested,
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
-    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -146,6 +148,11 @@ export default function LocalGamePage() {
     () => [...watchtowerCells[1], ...watchtowerCells[2]],
     [watchtowerCells]
   );
+  // 역린도 숨김이 없어서 양쪽이 표시해둔 돌을 다 보여줌
+  const boardReverseScaleCells = useMemo(
+    () => [reverseScaleCell[1], reverseScaleCell[2]].filter(Boolean),
+    [reverseScaleCell]
+  );
   // 금지구역/영구봉쇄/감시탑처럼 여러 칸을 고르는 중이면, 지금까지 고른 칸을 표시. 재배치는 옮길 원본 돌 자리를 표시
   const pendingCells = pendingTarget
     ? pendingTarget.kind === "relocate"
@@ -208,11 +215,17 @@ export default function LocalGamePage() {
 
   // 파기/감정은 보드 칸이 아니라 "내 패널의 카드"를 대상으로 고르는 능력이라, 해당 플레이어 패널에만
   // 카드 선택 모드를 켜고 실제로 고를 수 있는 카드 id 목록을 같이 넘겨줌
-  const cardTargetKind = pendingTarget?.kind === "discard" || pendingTarget?.kind === "appraisal" ? pendingTarget.kind : null;
+  const cardTargetKind =
+    pendingTarget?.kind === "discard" || pendingTarget?.kind === "appraisal" || pendingTarget?.kind === "lifeTransfer"
+      ? pendingTarget.kind
+      : null;
   function eligibleCardIdsFor(player) {
     if (!cardTargetKind || pendingTarget.player !== player) return [];
     if (cardTargetKind === "discard") {
       return ownedAugments[player].filter((a) => a.id !== "discard").map((a) => a.id);
+    }
+    if (cardTargetKind === "lifeTransfer") {
+      return ownedAugments[player].filter((a) => a.tier === "silver" && a.id !== "lifeTransfer").map((a) => a.id);
     }
     return ownedAugments[player].filter((a) => ENHANCEABLE_AUGMENT_IDS.includes(a.id) && !a.enhanced).map((a) => a.id);
   }
@@ -299,6 +312,7 @@ export default function LocalGamePage() {
           forbiddenCells={forbiddenCells}
           pendingCells={pendingCells}
           watchtowerCells={boardWatchtowerCells}
+          reverseScaleCells={boardReverseScaleCells}
           threatLines={threatLines}
           winCells={winCells}
           lastOpponentMoveCell={lastOpponentMoveCell}
