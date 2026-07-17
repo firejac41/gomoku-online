@@ -34,6 +34,7 @@ const TARGET_HINT = {
   collapse: "중심으로 삼을 칸을 선택하세요 (3x3이 사라져요)",
   discard: "버릴 증강 카드를 내 패널에서 선택하세요",
   appraisal: "강화할 증강 카드를 내 패널에서 선택하세요",
+  dungapsul: "위장할 증강 카드를 내 패널에서 선택하세요",
   ward: "일직선이 되는 두 칸을 선택하세요 (그 사이가 양쪽 다 영원히 막혀요)",
   prevention: "보호할 내 돌을 선택하세요",
   lifeTransfer: "골드로 교체할 실버 카드를 내 패널에서 선택하세요",
@@ -401,7 +402,7 @@ export default function RoomClient({ roomId }) {
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
     deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
-    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
+    fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell, disguisedCards,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, placementClock, ringTarget);
   // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
@@ -447,7 +448,10 @@ export default function RoomClient({ roomId }) {
   // 파기/감정은 보드 칸이 아니라 "내 패널의 카드"를 대상으로 고르는 능력이라, 해당 플레이어 패널에만
   // 카드 선택 모드를 켜고 실제로 고를 수 있는 카드 id 목록을 같이 넘겨줌
   const cardTargetKind =
-    pendingTarget?.kind === "discard" || pendingTarget?.kind === "appraisal" || pendingTarget?.kind === "lifeTransfer"
+    pendingTarget?.kind === "discard" ||
+    pendingTarget?.kind === "appraisal" ||
+    pendingTarget?.kind === "lifeTransfer" ||
+    pendingTarget?.kind === "dungapsul"
       ? pendingTarget.kind
       : null;
   function eligibleCardIdsFor(player) {
@@ -455,10 +459,23 @@ export default function RoomClient({ roomId }) {
     if (cardTargetKind === "discard") {
       return ownedAugments[player].filter((a) => a.id !== "discard").map((a) => a.id);
     }
+    if (cardTargetKind === "dungapsul") {
+      return ownedAugments[player].filter((a) => a.id !== "dungapsul").map((a) => a.id);
+    }
     if (cardTargetKind === "lifeTransfer") {
       return ownedAugments[player].filter((a) => a.tier === "silver" && a.id !== "lifeTransfer").map((a) => a.id);
     }
     return ownedAugments[player].filter((a) => ENHANCEABLE_AUGMENT_IDS.includes(a.id) && !a.enhanced).map((a) => a.id);
+  }
+
+  // 둔갑술 위장: 상대(또는 관전자) 화면에 상대가 위장해둔 카드를 가짜 이름·설명으로 바꿔서 보여줌.
+  // 내 패널(panelPlayer === myColor)은 항상 진짜 카드 그대로. 실제 게임 로직은 전부 state의 진짜 id를 쓰므로 여기선 표시만 바꿈.
+  function augmentsForPanel(panelPlayer) {
+    const list = ownedAugments[panelPlayer];
+    if (panelPlayer === myColor) return list; // 내 카드는 항상 진짜
+    const disguises = disguisedCards?.[panelPlayer];
+    if (!disguises) return list;
+    return list.map((a) => disguises[a.id] || a);
   }
 
   return (
@@ -530,7 +547,7 @@ export default function RoomClient({ roomId }) {
       <div className="gameLayout">
         <AugmentPanel
           title={colorForPlayer(1, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
-          augments={ownedAugments[1]}
+          augments={augmentsForPanel(1)}
           canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 1 && myColor === 1}
           usedMap={oneTimeUsed[1]}
           onUseAbility={(ability) => handleUseAbility(1, ability)}
@@ -572,7 +589,7 @@ export default function RoomClient({ roomId }) {
         />
         <AugmentPanel
           title={colorForPlayer(2, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
-          augments={ownedAugments[2]}
+          augments={augmentsForPanel(2)}
           canAct={!augmentSelect && !pendingTarget && !gameOver && !chaosActive && currentPlayer === 2 && myColor === 2}
           usedMap={oneTimeUsed[2]}
           onUseAbility={(ability) => handleUseAbility(2, ability)}
