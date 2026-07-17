@@ -68,15 +68,19 @@ export default function GomokuBoard({
       ctx.stroke();
     }
 
-    // 체크무늬: (x+y)가 짝수인(=착수 가능한) 칸마다 옅은 타일을 깔아서 패턴을 한눈에 보이게 함
+    // 체크무늬: (x+y)가 짝수인(=착수 가능한) 칸마다 타일을 깔아서 패턴을 한눈에 보이게 함
+    // (원래 알파 0.10은 보드 배경 위에서 거의 안 보인다는 피드백이 있어서 상향 + 타일 테두리 추가)
     if (checkerboardActive) {
-      ctx.fillStyle = "rgba(100, 180, 255, 0.10)";
+      ctx.fillStyle = "rgba(70, 160, 255, 0.28)";
+      ctx.strokeStyle = "rgba(70, 160, 255, 0.5)";
+      ctx.lineWidth = 1;
       for (let cy = 0; cy < BOARD_SIZE; cy++) {
         for (let cx = 0; cx < BOARD_SIZE; cx++) {
           if ((cx + cy) % 2 !== 0) continue;
           const px = PADDING + cx * CELL;
           const py = PADDING + cy * CELL;
           ctx.fillRect(px - CELL / 2, py - CELL / 2, CELL, CELL);
+          ctx.strokeRect(px - CELL / 2, py - CELL / 2, CELL, CELL);
         }
       }
     }

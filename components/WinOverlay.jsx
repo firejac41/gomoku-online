@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { colorForPlayer } from "@/lib/gomokuEngine";
 
 // myRole: 1 | 2 | "spectator" | null (null이면 로컬 모드 - 양쪽 버튼 다 누를 수 있음)
@@ -7,6 +8,11 @@ import { colorForPlayer } from "@/lib/gomokuEngine";
 // roleSwapActive: 게임 종료 시점에 입장 바꿔 생각하기가 켜져 있었는지 - 켜져 있었으면 신원 1/2이 실제로
 // 담당했던 돌 색이 뒤바뀌어 있었으므로, 버튼 라벨도 신원이 아니라 실제 담당 색 기준으로 보여줘야 함
 export default function WinOverlay({ message, rematchRequested, onRequestRematch, myRole, roleSwapActive = false }) {
+  // 증강 선택 화면의 "누르고 있으면 판 보기" 눈 아이콘과 같은 패턴 - 게임이 끝난 뒤에도
+  // 최종 보드를 다시 볼 방법이 없다는 피드백을 반영
+  const [peeking, setPeeking] = useState(false);
+  const togglePeek = () => setPeeking((prev) => !prev);
+
   function renderButton(player) {
     const requested = rematchRequested?.[player];
     const clickable = myRole === null || myRole === player;
@@ -24,7 +30,14 @@ export default function WinOverlay({ message, rematchRequested, onRequestRematch
   }
 
   return (
-    <div className="winOverlay">
+    <div className={"winOverlay" + (peeking ? " peeking" : "")}>
+      <button
+        className="peekEyeButton"
+        onClick={togglePeek}
+        title={peeking ? "눌러서 결과 다시 보기" : "눌러서 판 보기"}
+      >
+        {peeking ? "👁 결과 다시 보기" : "👁 눌러서 판 보기"}
+      </button>
       <div className="winOverlayCard">
         <h2>{message}</h2>
         <div className="rematchButtons">

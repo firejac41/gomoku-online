@@ -136,7 +136,8 @@ body {
 }
 .feedbackButton {
   position: fixed;
-  right: 14px;
+  /* 온라인 대전 화면의 채팅 버튼(.chatWidget)도 우하단 고정이라 겹쳤음 - 좌하단으로 이동해서 분리 */
+  left: 14px;
   bottom: 14px;
   z-index: 500;
   display: inline-flex;
@@ -504,7 +505,16 @@ body {
   gap: 16px;
   animation: overlayFadeIn 0.3s ease-out;
 }
+/* 증강 선택 화면의 "누르고 있으면 판 보기"와 같은 패턴 - 승리 화면이 최종 보드를 영구히 가리던 문제 보완 */
+.winOverlay.peeking {
+  background: rgba(0, 0, 0, 0.06);
+}
+.winOverlay.peeking .winOverlayCard {
+  opacity: 0.05;
+  pointer-events: none;
+}
 .winOverlayCard {
+  transition: opacity 0.15s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
