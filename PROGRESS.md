@@ -513,6 +513,15 @@
 - 매일 UTC 09:00에 이 세션을 재개해서: `feedback` 라벨이 붙은 미처리 GitHub 이슈를 찾아 → 명백한 버그(재현 가능+의도 아님이 확실)는 이 저장소의 기존 관례(Node 재현 스크립트→수정→재검증→`node --check`→가능하면 `next build`)를 따라 고친 뒤 **master에 직접 push**하고 이슈에 코멘트+닫기+`agent-fixed` 라벨 부여, PROGRESS.md에도 기록 / 밸런스·설계 판단이 필요하거나 애매한 건은 코드를 건드리지 않고 `agent-needs-approval` 라벨만 붙인 뒤 이 대화에 요약과 권고를 남겨 사용자 승인을 기다리도록 지시함. 새 피드백이 없으면 조용히 아무 것도 안 함(스팸 방지).
 - **미해결 리스크**: 트리거 생성 시 "이 Routine엔 MCP 커넥터가 저장되지 않아서 발동 시 GitHub 연동 도구(`mcp__github__*`) 없이 실행될 수 있다"는 경고가 떴음(같은 세션을 재개하는 방식이라 원래 세션이 갖고 있던 연동을 그대로 이어받을 가능성도 있지만 보장 안 됨). **다음 첫 실행(내일) 때 실제로 GitHub 이슈를 읽고 처리할 수 있는지 반드시 확인할 것** - 안 되면 claude.ai Routines UI에서 직접 재생성이 필요할 수 있음.
 
+### 32. 자가 밸런싱 사이클 6회차 - AI 품질 픽스 2건 (도미노 시너지 인지 / 봉쇄 계열 타겟 휴리스틱)
+세션 29·30에서 반복 관측된 승률 이상치 중 두 개(도미노 과소 성과, 영구 봉쇄류 무작위 타겟팅)의 원인을 코드로 추적한 결과, **게임 로직(`lib/gomokuEngine.js`/`lib/gameReducer.js`)은 정상이고 순전히 AI(`lib/aiPlayer.js`)의 두 가지 맹점 때문에 시뮬레이션 통계가 왜곡되고 있던 것**으로 확정 - AI 품질 픽스로만 처리(게임 규칙/밸런스 수치는 손대지 않음). 오케스트레이터가 이 두 지점을 사전 조사(read-only)한 뒤 스코프를 좁혀 지시했고, 이번 세션은 `lib/aiPlayer.js` 한 파일만 수정함.
+
+1. **도미노(domino) 시너지 인지**: 도미노는 포위 제거(capture)/오델로(othello)로 상대 돌을 없앨 때만 보너스 착수가 생기는데(`gameReducer.js`의 `capturedOrFlippedAny`/`dominoBonusTurn`), `scoreAugmentForPick`은 `TIER_BASE_SCORE + AUGMENT_PICK_HINTS`만 봐서 **소유 카드를 전혀 안 보고** 조합 파츠가 없어도 프리즘 만점으로 뽑고 있었음 - 시뮬레이션에서 상당 비율이 죽은 픽이 됨. `augment.id === "domino"`일 때 `state.ownedAugments[player]`에 capture/othello가 있으면 +8(강한 픽), 없으면 -10(프리즘 값에서 골드 쪽으로 끌어내림, 단 완전히 죽이지는 않아 투기 픽 여지 유지 - 기존 힌트 스케일 -8~+10에 맞춤).
+2. **봉쇄 계열(banZone/permaBlock/watchtower) 타겟 칸 휴리스틱**: 이 세 능력의 `pendingTarget` 대상 칸은 `state.board`를 안 건드리고 `blockedCells`/`permaBlockedCells`/`watchtowerCells`에만 추가돼서, `resolvePendingTarget`이 후보를 채점하는 `evalStateForPlayer`(=`fullBoardScore` 차이)가 모든 후보에 대해 사실상 동일하게 나옴 → 기존엔 `Math.random()*2` 지터로 **거의 무작위 칸**(빈 구석 포함)을 골랐음. `state.pendingTarget.kind`가 이 셋 중 하나면, 후보 칸에서 가장 가까운 상대 돌까지의 체비쇼프 거리 기반 근접도 보너스(`-거리*4`, 상대 돌이 없으면 중앙 약선호)를 더해 타이브레이크를 대체 - 상대가 실제로 뭔가 만드는 곳 근처를 막도록. banZone(3칸)처럼 다칸 선택도 각 칸이 자기 근접도를 기여하도록 재귀 각 단계에서 더함.
+
+- **검증**: (1) `node --check lib/aiPlayer.js` 통과. (2) `firejac41-gomoku-online-agent`의 ESM 로더로 리듀서/엔진/AI를 직접 import하는 임시 스크립트(커밋 안 함)로 확인 - 도미노: capture 보유 시 도미노 vs 부활(둘 다 프리즘)에서 도미노 100% 선택, 미보유 시 0%(부활에 밀림, 의도대로 "골드 쪽으로 하향"); 봉쇄: 한쪽 구석에 상대(색1) 돌 군집을 깔고 AI(신원2)에게 permaBlock `pendingTarget`을 준 뒤 200회 - 선택 칸의 군집까지 평균 체비쇼프 거리 1.00, 전부 거리≤2, 먼 칸(거리≥6) 0회(수정 전이었다면 거의 무작위였을 것). (3) `sim/balance-sim.mjs 250 --augment=domino`/`--augment=permaBlock` - 크래시·소프트락 의심 0건 확인(승률 표본은 작아 통계적 결론은 안 냄, 이번 스텝의 목적은 크래시/소프트락 확인 + 타겟팅 품질은 위 유닛 검증으로 확정). (4) `eslint lib/aiPlayer.js` 에러 0건. (5) 더미 Supabase 환경변수로 `next build` 통과(`/online`까지 전체 페이지 프리렌더).
+- **주의**: 이 픽스로 도미노의 픽률 자체가 낮아짐(조합 파츠 없이는 AI가 잘 안 뽑음) - 다음 회차에서 `--augment=domino` 시뮬 표본이 작게 나오는 건 버그가 아니라 이 의도된 동작임. 도미노/영구봉쇄의 "보유시승률"이 실제로 개선됐는지는 더 큰 표본에서 재확인할 것(이번엔 AI가 더 똑똑하게 뽑고/두게만 만들었고, 카드 자체 수치는 안 건드림).
+
 ## 현재 증강 전체 목록 (등급별, 총 77개 + 도박 전용 가짜카드 2개)
 
 ### 프리즘 (26)
