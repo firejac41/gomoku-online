@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import { gameReducer } from "@/lib/gameReducer";
+import { gameReducer, hasRealChange, ABILITY_SOUND_ACTION_TYPES } from "@/lib/gameReducer";
 import {
   findThreatCells,
   findThreatLines,
@@ -16,7 +16,7 @@ import {
   countStones,
   ENHANCEABLE_AUGMENT_IDS,
 } from "@/lib/gomokuEngine";
-import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
+import { playStoneSound, playAugmentSound, playAbilitySound, countTotalStones } from "@/lib/sound";
 import { useYourTurnAlert } from "@/lib/useYourTurnAlert";
 import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
@@ -84,14 +84,6 @@ async function claimRole(roomId, room) {
     }
   }
   return { role: "spectator", blackClaimed, whiteClaimed };
-}
-
-// forbiddenMessage/forbiddenToken 말고 다른 필드가 하나라도 바뀌었으면 "진짜 변화"로 취급해서 서버에 반영
-function hasRealChange(prev, next) {
-  return Object.keys(next).some((key) => {
-    if (key === "forbiddenMessage" || key === "forbiddenToken") return false;
-    return prev[key] !== next[key];
-  });
 }
 
 export default function RoomClient({ roomId }) {
@@ -244,6 +236,9 @@ export default function RoomClient({ roomId }) {
       // 렌주룰 금수 안내처럼 나한테만 보이면 되는 변화는 서버에 안 올림
       return;
     }
+
+    // 액티브 능력이 실제로 발동했을 때만(쿨다운 등으로 막힌 안내 메시지만 뜬 경우는 위에서 이미 걸러짐) 사용음 재생
+    if (ABILITY_SOUND_ACTION_TYPES.has(action.type)) playAbilitySound();
 
     pushState(newState);
   }

@@ -5,7 +5,6 @@ import { ShapeDiagram } from "@/components/AugmentSelectOverlay";
 
 // 직접 "사용" 버튼으로 발동시키는 증강들 (그 외는 상시 적용되는 패시브 효과라 버튼 없음)
 const ACTIVE_ABILITIES = {
-  doubleMove: "이번 턴 2개 놓기",
   removeStone: "상대 돌 제거 (사용하면 턴 넘어감)",
   undo: "상대 마지막 수 무르기",
   selfUndo: "내 마지막 수 무르기",

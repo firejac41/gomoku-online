@@ -6,7 +6,7 @@ import GomokuBoard from "@/components/GomokuBoard";
 import AugmentPanel from "@/components/AugmentPanel";
 import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
 import WinOverlay from "@/components/WinOverlay";
-import { gameReducer, initialGameState } from "@/lib/gameReducer";
+import { gameReducer, initialGameState, hasRealChange, ABILITY_SOUND_ACTION_TYPES } from "@/lib/gameReducer";
 import { decideAiAction, isAiTurn } from "@/lib/aiPlayer";
 import {
   findThreatCells,
@@ -20,7 +20,7 @@ import {
   countStones,
   ENHANCEABLE_AUGMENT_IDS,
 } from "@/lib/gomokuEngine";
-import { playStoneSound, playAugmentSound, countTotalStones } from "@/lib/sound";
+import { playStoneSound, playAugmentSound, playAbilitySound, countTotalStones } from "@/lib/sound";
 import { useYourTurnAlert } from "@/lib/useYourTurnAlert";
 
 const HUMAN_PLAYER = 1;
@@ -72,6 +72,16 @@ export default function SingleplayerGamePage() {
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
   const aiTurn = isAiTurn(state, AI_PLAYER);
 
+  // 액티브 능력이 실제로 발동했을 때만(쿨다운 등으로 막혀 안내 메시지만 뜬 경우는 제외) 사용음 재생 -
+  // dispatch 전에 리듀서를 미리 한 번 돌려서 실제 변화 여부를 판정(RoomClient의 dispatchAction과 같은 패턴).
+  // 사람/AI 양쪽 다 이 경로로 능력을 쓰므로 AI가 능력을 쓸 때도 똑같이 소리가 남
+  function dispatchWithAbilitySound(action) {
+    if (ABILITY_SOUND_ACTION_TYPES.has(action.type) && hasRealChange(state, gameReducer(state, action))) {
+      playAbilitySound();
+    }
+    dispatch(action);
+  }
+
   // AI 턴 구동: 상태가 바뀔 때마다 "지금 AI가 뭘 해야 하는지" 하나만 계산해서, 약간의 지연 후 디스패치.
   // 그 결과로 다시 이 effect가 돌면서 다음 액션을 계산 - 질풍노도 보너스 수/능력 여러 번 사용 등 여러 틱에
   // 걸친 AI 턴이 자연스럽게 이어짐 (사람 쪽 로직/리듀서는 전혀 안 건드림)
@@ -79,8 +89,9 @@ export default function SingleplayerGamePage() {
     if (!aiTurn) return;
     const action = decideAiAction(state, AI_PLAYER);
     if (!action) return;
-    const timer = setTimeout(() => dispatch(action), delayForAiAction(action));
+    const timer = setTimeout(() => dispatchWithAbilitySound(action), delayForAiAction(action));
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, aiTurn]);
 
   // 게임이 끝나면 AI도 잠시 후 스스로 재도전 버튼을 누름
@@ -211,18 +222,18 @@ export default function SingleplayerGamePage() {
 
   function handleBoardClick(x, y) {
     if (pendingTarget) {
-      dispatch({ type: "TARGET_CELL", x, y });
+      dispatchWithAbilitySound({ type: "TARGET_CELL", x, y });
     } else {
       dispatch({ type: "CLICK_CELL", x, y });
     }
   }
 
   function handleUseAbility(player, ability) {
-    dispatch({ type: "USE_ABILITY", player, ability });
+    dispatchWithAbilitySound({ type: "USE_ABILITY", player, ability });
   }
 
   function handlePickCardTarget(augmentId) {
-    dispatch({ type: "PICK_CARD_TARGET", augmentId });
+    dispatchWithAbilitySound({ type: "PICK_CARD_TARGET", augmentId });
   }
 
   // AI(2번)의 pendingTarget/능력은 사람이 클릭으로 끼어들 수 없어야 하므로, 카드 대상 선택 모드는
