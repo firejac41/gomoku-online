@@ -508,10 +508,14 @@ body {
 /* 증강 선택 화면의 "누르고 있으면 판 보기"와 같은 패턴 - 승리 화면이 최종 보드를 영구히 가리던 문제 보완 */
 .winOverlay.peeking {
   background: rgba(0, 0, 0, 0.06);
+  pointer-events: none;
 }
 .winOverlay.peeking .winOverlayCard {
   opacity: 0.05;
   pointer-events: none;
+}
+.winOverlay.peeking .peekEyeButton {
+  pointer-events: auto;
 }
 .winOverlayCard {
   transition: opacity 0.15s ease;
@@ -718,10 +722,16 @@ body {
 }
 .augmentSelectOverlay.peeking {
   background: rgba(0, 0, 0, 0.06);
+  /* 오버레이 자기 자신도 클릭을 막고 있어서, 판은 보이는데 뒤에 있는 증강 패널(상대 카드 설명 등)을
+     클릭할 수 없던 문제가 있었음 - 눈 아이콘만 다시 클릭 가능하게 예외 처리 */
+  pointer-events: none;
 }
 .augmentSelectOverlay.peeking .augmentSelectContent {
   opacity: 0.05;
   pointer-events: none;
+}
+.augmentSelectOverlay.peeking .peekEyeButton {
+  pointer-events: auto;
 }
 .peekEyeButton {
   position: absolute;
