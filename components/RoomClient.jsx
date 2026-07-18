@@ -413,7 +413,7 @@ export default function RoomClient({ roomId }) {
     deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell, disguisedCards,
-    jeerCooldown, startleCooldown, startleToken, firecrackerCooldown, firecrackerToken,
+    breezeCooldown, saltScatterCooldown, acornTossCooldown,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, placementClock, ringTarget);
   // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
@@ -568,9 +568,9 @@ export default function RoomClient({ roomId }) {
             relocate: relocateCooldown[1],
             prepStance: prepStanceCooldown[1],
             prevention: preventionCooldown[1],
-            jeer: jeerCooldown[1],
-            startle: startleCooldown[1],
-            firecracker: firecrackerCooldown[1],
+            breeze: breezeCooldown[1],
+            saltScatter: saltScatterCooldown[1],
+            acornToss: acornTossCooldown[1],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1 && myColor === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
@@ -596,8 +596,6 @@ export default function RoomClient({ roomId }) {
           foresightCells={foresightCells}
           checkerboardActive={checkerboardActive}
           fogTurnsLeft={myColor === 1 || myColor === 2 ? fogTurnsLeft[myColor] : 0}
-          shakeToken={startleToken}
-          confettiToken={firecrackerToken}
         />
         <AugmentPanel
           title={colorForPlayer(2, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
@@ -615,9 +613,9 @@ export default function RoomClient({ roomId }) {
             relocate: relocateCooldown[2],
             prepStance: prepStanceCooldown[2],
             prevention: preventionCooldown[2],
-            jeer: jeerCooldown[2],
-            startle: startleCooldown[2],
-            firecracker: firecrackerCooldown[2],
+            breeze: breezeCooldown[2],
+            saltScatter: saltScatterCooldown[2],
+            acornToss: acornTossCooldown[2],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2 && myColor === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}

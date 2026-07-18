@@ -66,7 +66,7 @@ export default function SingleplayerGamePage() {
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
-    jeerCooldown, startleCooldown, startleToken, firecrackerCooldown, firecrackerToken,
+    breezeCooldown, saltScatterCooldown, acornTossCooldown,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -326,9 +326,9 @@ export default function SingleplayerGamePage() {
             relocate: relocateCooldown[HUMAN_PLAYER],
             prepStance: prepStanceCooldown[HUMAN_PLAYER],
             prevention: preventionCooldown[HUMAN_PLAYER],
-            jeer: jeerCooldown[HUMAN_PLAYER],
-            startle: startleCooldown[HUMAN_PLAYER],
-            firecracker: firecrackerCooldown[HUMAN_PLAYER],
+            breeze: breezeCooldown[HUMAN_PLAYER],
+            saltScatter: saltScatterCooldown[HUMAN_PLAYER],
+            acornToss: acornTossCooldown[HUMAN_PLAYER],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === HUMAN_PLAYER}
           eligibleCardIds={eligibleCardIdsFor(HUMAN_PLAYER)}
@@ -355,8 +355,6 @@ export default function SingleplayerGamePage() {
           foresightCells={foresightCells}
           checkerboardActive={checkerboardActive}
           fogTurnsLeft={fogTurnsLeft[currentPlayer]}
-          shakeToken={startleToken}
-          confettiToken={firecrackerToken}
         />
         <AugmentPanel
           title={(colorForPlayer(AI_PLAYER, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강") + " (AI)"}
@@ -374,9 +372,9 @@ export default function SingleplayerGamePage() {
             relocate: relocateCooldown[AI_PLAYER],
             prepStance: prepStanceCooldown[AI_PLAYER],
             prevention: preventionCooldown[AI_PLAYER],
-            jeer: jeerCooldown[AI_PLAYER],
-            startle: startleCooldown[AI_PLAYER],
-            firecracker: firecrackerCooldown[AI_PLAYER],
+            breeze: breezeCooldown[AI_PLAYER],
+            saltScatter: saltScatterCooldown[AI_PLAYER],
+            acornToss: acornTossCooldown[AI_PLAYER],
           }}
           cardTargetActive={false}
           eligibleCardIds={[]}

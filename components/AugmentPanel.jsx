@@ -33,9 +33,9 @@ const ACTIVE_ABILITIES = {
   prevention: "돌 보호 지정",
   lifeTransfer: "실버 카드를 골드로 교체",
   reverseScale: "역린 표시하기",
-  jeer: "약올리기",
-  startle: "판 흔들기",
-  firecracker: "폭죽 터트리기",
+  breeze: "상대 외톨이 돌 밀기",
+  saltScatter: "소금 뿌리기",
+  acornToss: "상대 외톨이 돌 없애기 (사용하면 턴 넘어감)",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
