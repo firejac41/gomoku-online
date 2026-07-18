@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BOARD_SIZE } from "@/lib/gomokuEngine";
 
 const CELL = 40;
@@ -10,6 +10,9 @@ const CANVAS_SIZE = PADDING * 2 + (BOARD_SIZE - 1) * CELL;
 // 안개: 보드 외곽 2줄(그리드 인덱스 1.5 지점까지)을 가리는 밴드 두께를 캔버스 대비 퍼센트로 미리 계산
 // (캔버스가 CSS로 축소 표시될 수 있어서 오버레이도 % 기반으로 깔아야 항상 같은 자리에 맞음)
 const FOG_BAND_PERCENT = ((PADDING + 1.5 * CELL) / CANVAS_SIZE) * 100;
+
+// 폭죽 세례 연출용 색상 팔레트 (순수 장식 - 게임 상태와 무관)
+const CONFETTI_COLORS = ["#ff6b6b", "#feca57", "#48dbfb", "#1dd1a1", "#ff9ff3", "#f368e0"];
 
 // 15x15 오목판을 캔버스에 그리고, 클릭 좌표를 격자 좌표로 바꿔 onCellClick(x, y)로 알려줌
 // blockedCells: 나를 실제로 막는 칸(진한 X), fadedBlockedCells: 내가 상대에게 건 금지라 나는 상관없는 칸(흐린 X)
@@ -25,6 +28,8 @@ const FOG_BAND_PERCENT = ((PADDING + 1.5 * CELL) / CANVAS_SIZE) * 100;
 // checkerboardActive: 체크무늬 발동 중이면 (x+y) 짝수 칸에 옅은 체크 타일 하이라이트를 깔아줌
 // fogTurnsLeft: 안개에 걸린 내 남은 턴 수(0보다 크면) - 보드 외곽 2줄을 안개 오버레이로 가림 (온라인 전용)
 // reverseScaleCells: 역린으로 표시된 돌들(빨간 다이아몬드 - 숨김 없이 양쪽 다 보임) - 인접 8칸에 두면 무효화됨
+// shakeToken: "놀래키기"를 쓸 때마다 1씩 증가하는 카운터 - 값이 바뀔 때마다 판 흔들림 연출을 재생 (게임 상태와 무관)
+// confettiToken: "폭죽 세례"를 쓸 때마다 1씩 증가하는 카운터 - 값이 바뀔 때마다 폭죽 연출을 재생 (게임 상태와 무관)
 export default function GomokuBoard({
   board,
   onCellClick,
@@ -45,8 +50,45 @@ export default function GomokuBoard({
   checkerboardActive = false,
   fogTurnsLeft = 0,
   reverseScaleCells = [],
+  shakeToken = 0,
+  confettiToken = 0,
 }) {
   const canvasRef = useRef(null);
+  const [shaking, setShaking] = useState(false);
+  const [confettiVisible, setConfettiVisible] = useState(false);
+  const [confettiPieces, setConfettiPieces] = useState([]);
+
+  // 놀래키기: 토큰이 바뀔 때마다(첫 렌더 제외) 잠깐 흔들림 클래스를 켰다가 끔 - 순수 CSS 연출, 보드 상태는 안 건드림
+  const shakeMounted = useRef(false);
+  useEffect(() => {
+    if (!shakeMounted.current) {
+      shakeMounted.current = true;
+      return;
+    }
+    setShaking(true);
+    const timer = setTimeout(() => setShaking(false), 500);
+    return () => clearTimeout(timer);
+  }, [shakeToken]);
+
+  // 폭죽 세례: 토큰이 바뀔 때마다(첫 렌더 제외) 무작위 색/위치의 조각들을 새로 배치하고 잠깐 보여줌
+  const confettiMounted = useRef(false);
+  useEffect(() => {
+    if (!confettiMounted.current) {
+      confettiMounted.current = true;
+      return;
+    }
+    setConfettiPieces(
+      Array.from({ length: 24 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 0.3,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      }))
+    );
+    setConfettiVisible(true);
+    const timer = setTimeout(() => setConfettiVisible(false), 1500);
+    return () => clearTimeout(timer);
+  }, [confettiToken]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -292,7 +334,7 @@ export default function GomokuBoard({
   }
 
   return (
-    <div className="boardWrapper">
+    <div className={"boardWrapper" + (shaking ? " boardShaking" : "")}>
       <canvas
         id="gomoku-board"
         ref={canvasRef}
@@ -308,6 +350,17 @@ export default function GomokuBoard({
           <div className="fogBand fogBandLeft" style={{ width: FOG_BAND_PERCENT + "%", backdropFilter: "blur(5px)" }} />
           <div className="fogBand fogBandRight" style={{ width: FOG_BAND_PERCENT + "%", backdropFilter: "blur(5px)" }} />
         </>
+      )}
+      {confettiVisible && (
+        <div className="confettiOverlay">
+          {confettiPieces.map((p) => (
+            <span
+              key={p.id}
+              className="confettiPiece"
+              style={{ left: p.left + "%", animationDelay: p.delay + "s", background: p.color }}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

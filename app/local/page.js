@@ -64,6 +64,7 @@ export default function LocalGamePage() {
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
+    jeerCooldown, startleCooldown, startleToken, firecrackerCooldown, firecrackerToken,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -309,6 +310,9 @@ export default function LocalGamePage() {
             relocate: relocateCooldown[1],
             prepStance: prepStanceCooldown[1],
             prevention: preventionCooldown[1],
+            jeer: jeerCooldown[1],
+            startle: startleCooldown[1],
+            firecracker: firecrackerCooldown[1],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
@@ -335,6 +339,8 @@ export default function LocalGamePage() {
           foresightCells={foresightCells}
           checkerboardActive={checkerboardActive}
           fogTurnsLeft={fogTurnsLeft[currentPlayer]}
+          shakeToken={startleToken}
+          confettiToken={firecrackerToken}
         />
         <AugmentPanel
           title={colorForPlayer(2, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
@@ -352,6 +358,9 @@ export default function LocalGamePage() {
             relocate: relocateCooldown[2],
             prepStance: prepStanceCooldown[2],
             prevention: preventionCooldown[2],
+            jeer: jeerCooldown[2],
+            startle: startleCooldown[2],
+            firecracker: firecrackerCooldown[2],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}

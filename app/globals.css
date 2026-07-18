@@ -486,6 +486,38 @@ body {
   to { background-position: 30% 20%, 70% 80%, 20% 40%, 0 0; }
 }
 
+/* 놀래키기: 판 전체를 잠깐 흔드는 순수 연출 - 게임 상태는 전혀 안 건드림 */
+.boardShaking {
+  animation: boardShakeKeyframes 0.5s;
+}
+@keyframes boardShakeKeyframes {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-9px); }
+  40%, 60% { transform: translateX(9px); }
+}
+
+/* 폭죽 세례: 보드 위로 색색의 조각이 떨어지는 순수 연출 - pointer-events:none이라 클릭을 절대 막지 않음 */
+.confettiOverlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: 8px;
+}
+.confettiPiece {
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation: confettiFall 1.4s ease-in forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(420px) rotate(360deg); opacity: 0; }
+}
+
 .forbiddenMessage {
   height: 20px;
   font-size: 14px;
