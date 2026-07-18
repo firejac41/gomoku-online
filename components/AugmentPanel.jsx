@@ -25,7 +25,6 @@ const ACTIVE_ABILITIES = {
   wipeout: "판 위 돌 전부 지우기 (사용하면 턴 넘어감)",
   fog: "상대 시야 가리기 (3턴)",
   discard: "카드 파기 (같은 등급 새 카드로)",
-  dungapsul: "내 카드 하나 위장하기",
   appraisal: "카드 강화 (이름+)",
   pokerFace: "포커페이스 사용",
   timeCollapse: "시공간 붕괴로 되돌리기 (사용하면 턴 넘어감)",

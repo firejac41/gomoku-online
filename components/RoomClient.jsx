@@ -34,7 +34,6 @@ const TARGET_HINT = {
   collapse: "중심으로 삼을 칸을 선택하세요 (3x3이 사라져요)",
   discard: "버릴 증강 카드를 내 패널에서 선택하세요",
   appraisal: "강화할 증강 카드를 내 패널에서 선택하세요",
-  dungapsul: "위장할 증강 카드를 내 패널에서 선택하세요",
   ward: "일직선이 되는 두 칸을 선택하세요 (그 사이가 양쪽 다 영원히 막혀요)",
   prevention: "보호할 내 돌을 선택하세요",
   lifeTransfer: "골드로 교체할 실버 카드를 내 패널에서 선택하세요",
@@ -284,11 +283,11 @@ export default function RoomClient({ roomId }) {
     dispatchAction({ type: "PICK_CARD_TARGET", augmentId });
   }
 
-  function handleRequestRematch(player) {
+  function handleRequestRematch(player, chosenColor) {
     const current = gameStateRef.current;
     const myColorNow = toLogicalColor(myRole, current?.colorFlipped);
     if (myColorNow !== player) return;
-    dispatchAction({ type: "REQUEST_REMATCH", player });
+    dispatchAction({ type: "REQUEST_REMATCH", player, chosenColor });
   }
 
   // myColor/opponentColor는 "지금 이 판에서 내가 맡은 신원 슬롯"(1|2) - ownedAugments/turn 비교 등은 전부 이 슬롯 기준
@@ -393,7 +392,7 @@ export default function RoomClient({ roomId }) {
   }
 
   const {
-    board, currentPlayer, gameOver, winMessage, stonesPlaced, ownedAugments,
+    board, currentPlayer, gameOver, winMessage, winnerPlayer, stonesPlaced, ownedAugments,
     augmentSelect, oneTimeUsed, pendingTarget, blockedCells, permaBlockedCells, watchtowerCells,
     deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
@@ -445,17 +444,13 @@ export default function RoomClient({ roomId }) {
   const cardTargetKind =
     pendingTarget?.kind === "discard" ||
     pendingTarget?.kind === "appraisal" ||
-    pendingTarget?.kind === "lifeTransfer" ||
-    pendingTarget?.kind === "dungapsul"
+    pendingTarget?.kind === "lifeTransfer"
       ? pendingTarget.kind
       : null;
   function eligibleCardIdsFor(player) {
     if (!cardTargetKind || pendingTarget.player !== player) return [];
     if (cardTargetKind === "discard") {
       return ownedAugments[player].filter((a) => a.id !== "discard").map((a) => a.id);
-    }
-    if (cardTargetKind === "dungapsul") {
-      return ownedAugments[player].filter((a) => a.id !== "dungapsul").map((a) => a.id);
     }
     if (cardTargetKind === "lifeTransfer") {
       return ownedAugments[player].filter((a) => a.tier === "silver" && a.id !== "lifeTransfer").map((a) => a.id);
@@ -615,6 +610,8 @@ export default function RoomClient({ roomId }) {
           onRequestRematch={handleRequestRematch}
           myRole={myColor}
           roleSwapActive={roleSwapActive}
+          winnerPlayer={winnerPlayer}
+          enableLoserColorChoice
         />
       )}
 

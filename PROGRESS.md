@@ -1,7 +1,7 @@
 # gomoku-online 작업 기록
 
 이 파일은 새 대화에서 이어서 작업할 수 있도록 지금까지 한 작업을 정리한 문서입니다.
-최신 커밋: `master` 브랜치 최신 상태(아래 "37번" 섹션 참고 - 다중 칸 선택 취소 + 판 보기 중 패널 클릭 막힘 수정)
+최신 커밋: `master` 브랜치 최신 상태(아래 "38번" 섹션 참고 - 재도전 진 쪽 색 선택 + 시작 증강 제외 범위 확대 + 둔갑술 재설계)
 
 ## 프로젝트 개요
 
@@ -633,6 +633,24 @@
 
 **나머지 4개 항목은 사용자 결정이 필요해서 질문으로 넘김**: 재도전 시 진 쪽 색 선택 방식, 시작 증강 풀 제외 범위, 둔갑술 재설계 방식, 온라인 시작 증강 버그의 정확한 증상 - 답변을 받으면 이어서 처리할 예정.
 
+### 38. 이슈 #13 나머지 항목 3건 처리 - 재도전 진 쪽 색 선택 / 시작 증강 제외 범위 확대 / 둔갑술 재설계
+세션 37에서 승인이 필요해 질문으로 넘겼던 4개 항목 중 3개에 대해 답변을 받아 구현함(온라인 시작 증강 버그 재현은 이 세션 환경에 실제 Supabase 자격증명이 전혀 없어서 - `.env` 파일도 없고 관련 환경변수도 비어있음 확인 - 시도할 수 없었음, 아래 참고).
+
+1. **재도전 시 진 쪽이 다음 판 색을 직접 선택**: 기존엔 승패와 무관하게 재도전이 성사될 때마다 무조건 `colorFlipped`가 토글돼서 흑/백이 자동으로 뒤바뀌었음 - 사용자가 "진 쪽만 선택, 이긴 쪽은 자동"(무승부는 기존처럼 자동 교대) 방식을 선택함.
+   - `state.winnerPlayer`(신원, 무승부면 null) 신규 필드를 승리 판정 두 지점(라인/영역/네모 승리, 물량전 승리)에서 기록. 부활로 무효화되는 수는 그 반환 경로가 `winnerPlayer`를 안 건드리는 별도 return이라 자동으로 세팅 안 됨(정상 - 아직 게임이 안 끝났으므로).
+   - `REQUEST_REMATCH` 액션에 `chosenColor`(진 쪽이 고른 다음 판 색, 1|2) 옵션 필드 추가. 먼저 요청하는 쪽이 색을 골랐으면 `state.pendingRematchColor`에 기억해뒀다가, 양쪽 다 확정되는 순간 `state.isOnlineMode && winnerPlayer != null && pendingRematchColor != null`일 때만 그 선택대로 `colorFlipped`를 역산(`toLogicalColor(loserPlayer, flipped) === chosenColor`가 성립하도록) - 무승부/로컬/싱글플레이는 전부 기존 자동 토글 그대로 유지(로컬/싱글플레이는 물리적 신원 개념이 없어서 애초에 `colorFlipped`가 렌더링에 안 쓰이는 무해한 값이라, 굳이 새 기능을 얹어봐야 체감 효과가 없음 - 세션 11의 "온라인 모드 한정" 스코프를 그대로 계승).
+   - `WinOverlay.jsx`에 `winnerPlayer`/`enableLoserColorChoice` prop 신설(온라인 전용으로 `RoomClient.jsx`에서만 `true`) - 켜져 있고 승자가 있으면: 진 쪽에게는 "⚫ 흑돌로 재도전 / ⚪ 백돌로 재도전" 2버튼(고르면 `onRequestRematch(loserPlayer, chosenColor)`), 이긴 쪽에게는 색 선택 없는 "재도전 동의" 버튼 1개, 관전자에게는 "고르는 중" 안내만. 무승부거나 `enableLoserColorChoice`가 꺼진 로컬/싱글플레이는 기존 2버튼(자기 색 확인 후 클릭) 방식 그대로 유지.
+   - **검증**: Node로 리듀서 격리 테스트 - 라인 승리 시 `winnerPlayer`가 정확히 세팅되는지, 진 쪽이 고른 색대로 `colorFlipped`가 정확히 역산되는지(양방향 다 확인), 로컬 모드는 `chosenColor`가 와도 무시하고 기존 자동 토글을 쓰는지, 무승부(`winnerPlayer===null`)는 `chosenColor`가 섞여 들어와도 항상 자동 토글로 폴백하는지 전부 확인.
+2. **시작 증강(0수, 착수 전) 풀 제외 범위 확대**: 기존엔 칸 지정/도박류 3장(banZone/permaBlock/gamble)만 제외였는데, 사용자가 "제거 계열 카드까지 전부 제외"를 선택 - 즉시발동형 전역 효과(설명에 "즉시 발동"이 명시된 rush/prison/battleRing/chaos/roleSwap/checkerboard/nozdormu 7장)와 제거 계열(interest/survivor/karma가 이미 같은 기준으로 묶어 쓰던 capture/raid/removeStone/plague/collapse 5개에 사용자가 예시로 든 othello, 그리고 karma 자신을 더한 7장)을 합쳐 총 14장을 `START_DRAFT_EXCLUDE_IDS`에 추가함(기존 `IMMEDIATE_TARGET_EXCLUDE_IDS`와 별개 배열로 분리 - 포커페이스 강탈 제외 목록(`POKER_FACE_STEAL_EXCLUDE_IDS`)은 이 확장과 무관하니 그대로 `IMMEDIATE_TARGET_EXCLUDE_IDS`만 참조하도록 유지).
+   - **검증**: Node로 시작 증강 500회 반복 뽑기 - 제외 대상 17개(기존 3+신규 14) 중 단 하나도 등장하지 않는 것 확인. `next build` 통과.
+3. **둔갑술(dungapsul) 재설계 - 액티브 1회 사용 → 즉시발동 패시브(매 드래프트마다 반복)**: 사용자가 "뽑는 즉시 발동, 매 드래프트마다 반복 위장"을 선택 - 기존엔 버튼을 눌러 이미 보유한 카드 하나를 골라 1회 위장시키는 액티브였는데, 이제 카드를 뽑는 순간 즉시 발동해서 그 이후로 매번 새로 얻는 카드가 자동으로(별도 조작 없이) 상대 화면에서 위장됨.
+   - `state.dungapsulActive: {1:false,2:false}` 신규 필드, prison/battleRing 등과 같은 `activateInstantAugments` 패턴으로 뽑는 즉시 켜짐(자기 자신이 위장 안 되는 건 그대로 유지 - 활성화 시점엔 아직 `state.dungapsulActive`가 꺼져 있는 상태에서 판정하므로 자동으로 제외됨).
+   - `PICK_AUGMENT`의 `activateInstantAugments` 호출 직후에 "고르는 이 카드"에 대해 `state.dungapsulActive[player]`(방금 발동된 게 아니라 그 전부터 켜져 있었는지)를 확인해서, 켜져 있으면 같은 등급의 무작위 가짜를 뽑아 `disguisedCards`에 등록 - 이 지점 하나가 일반 드래프트/시작 드래프트 양쪽 분기보다 앞이라 두 경로 다 자동으로 커버됨(둔갑술이 시작 증강으로 뽑혀도 정상 작동).
+   - 기존 `USE_ABILITY "dungapsul"`/`PICK_CARD_TARGET "dungapsul"` 케이스, `ONE_TIME_ABILITY_IDS`의 dungapsul 항목, `AugmentPanel`의 버튼 라벨, 3개 페이지의 `TARGET_HINT`/`cardTargetKind`/`eligibleCardIdsFor`의 dungapsul 분기를 전부 제거(더 이상 대상 선택 UI 자체가 필요 없어짐). 카드가 소유를 떠날 때 위장을 정리하는 `clearDisguiseEntry`(파기/인생환승 교체, 포커페이스 강탈)는 메커니즘과 무관하게 그대로 유지.
+   - **검증**: Node로 리듀서 격리 테스트 - 뽑는 즉시 `dungapsulActive`가 켜지고 자기 자신은 위장 안 되는 것, 이후 두 번째·세 번째로 뽑는 카드가 매번 자동으로(반복해서) 위장되고 등급이 일치하는 것, 둔갑술이 없는 신원은 자동 위장이 전혀 안 걸리는 것, 이제 존재하지 않는 `USE_ABILITY dungapsul`이 완전한 no-op인 것까지 확인. `eslint`(git stash 비교로 신규 에러 0건)/`next build` 통과.
+
+**온라인 시작 증강 버그 재현 - 여전히 못 함**: 사용자가 "PC 환경이니 Supabase가 연결돼 있을 것"이라고 해서 다시 확인했지만, `lib/supabaseClient.js`가 참조하는 `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` 환경변수가 이 세션에는 전혀 설정돼 있지 않고(`printenv` 확인), `.env*` 파일도 저장소/시스템 어디에도 없음(`find` 확인) - 이 세션이 돌아가는 환경은 사용자의 실제 PC가 아니라 격리된 클라우드 샌드박스라 실제 배포된 Supabase 프로젝트에 접근할 방법이 없음. 인터랙티브 브라우저 도구(Playwright 등)도 이 세션 툴셋엔 없어서(읽기 전용 WebFetch만 있음) 두 브라우저로 조작하는 라이브 테스트 자체가 불가능함. 다음에 이 버그를 재현하려면 (a) 실제 Supabase 프로젝트 자격증명이 연결된 세션이거나 (b) 사용자가 직접 재현해서 정확한 증상(백돌 화면에 시작 증강 선택 화면 자체가 안 뜨는지 vs 뜨는데 클릭이 안 먹히는지)을 알려주는 방법 중 하나가 필요함.
+
 ## 현재 증강 전체 목록 (등급별, 총 75개 + 도박 전용 가짜카드 2개)
 
 ### 프리즘 (25)
@@ -720,7 +738,7 @@
 | prepStance | 대비태세 | 사용하면 즉시 방어막이 생겨서 다음번 제거·봉쇄 계열 공격 1회를 자동으로 막아줌 (부적과 같은 방식이지만, 원하는 타이밍에 직접 켤 수 있고 재사용 가능) - 재사용 대기시간 있음(5수), 사용해도 턴은 안 넘어감 |
 | cunning | 커닝 | **온라인 전용** - 획득 즉시 발동, 게임 끝까지 유지. 상대가 증강을 고르는 중일 때 그 선택지 카드 내용이 나에게만 보임 |
 | trickleDown | 낙수효과 | 자동 발동(1회) - 상대가 잠복·역감시·생존자·벼랑 끝 중 하나로 무료 카드를 처음 획득하는 순간, 나도 무작위 실버 카드 1장을 함께 획득 |
-| dungapsul | 둔갑술 | **온라인 전용** - 1회 사용, 내 보유 카드 하나를 지정하면 이번 판 동안 상대 화면에서만 같은 등급의 다른 카드로 이름·설명이 위장됨 (내 화면엔 그대로, 실제 효과·소유권·모든 게임 로직은 진짜 카드 그대로) |
+| dungapsul | 둔갑술 | **온라인 전용** - 뽑는 즉시 발동, 이후 내가 새로 얻는 증강 카드마다 자동으로 상대 화면에서만 같은 등급의 다른 카드로 이름·설명이 위장됨 (매 증강 선택마다 반복, 내 화면엔 그대로, 둔갑술 자기 자신은 위장 안 됨, 실제 효과·소유권·모든 게임 로직은 진짜 카드 그대로) |
 
 ### 도박 전용 가짜 카드 (2, AUGMENTS 풀에는 없음)
 | id | 이름 | 효과 |
@@ -775,3 +793,4 @@
 - 세션 30(자가 밸런싱 사이클 2회차)은 `claude/session-zf30rt` 브랜치에서 작업하고 `master`로 바로 커밋+푸시함(`aa321b4`) - 이번 회차부터 별도 저장소 `firejac41-gomoku-online-agent`(시뮬레이션 스크립트/증강 후보/사이클 리포트 전용)를 이용해 진행, `orchestration/PLAYBOOK.md` 절차를 따름
 - 세션 35(피드백 트리아지 실행)는 `claude/feedback-routine-execution-hyt86s` 브랜치에서 작업 후 그대로 `master`로 fast-forward 병합+푸시함(`5a55ce1`)
 - 세션 36(액티브 사용음 + 돌 추가 계열 증강 삭제)도 같은 `claude/feedback-routine-execution-hyt86s` 브랜치에서 이어서 작업 후 `master`로 fast-forward 병합+푸시함
+- 세션 37/38(이슈 #13 나머지 항목)도 같은 `claude/feedback-routine-execution-hyt86s` 브랜치에서 계속 이어서 작업 후 매번 `master`로 fast-forward 병합+푸시함
