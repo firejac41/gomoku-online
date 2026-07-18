@@ -142,11 +142,15 @@ export default function RoomClient({ roomId }) {
 
   useEffect(() => {
     let cancelled = false;
+    let resyncedAfterSubscribe = false;
 
-    async function setup() {
+    // allowClaim=false로 호출되면(구독 확정 직후 재동기화용) 아직 역할이 정해지기 전 상태에서는
+    // claimRole을 다시 시도하지 않고 조용히 넘어감 - 같은 사람이 흑/백 둘 다 집는 이중 클레임을 방지
+    async function fetchAndApply(allowClaim) {
       const { data: room, error } = await supabase.from("game_rooms").select("*").eq("id", roomId).single();
+      if (cancelled) return;
       if (error || !room) {
-        if (!cancelled) setStatus("notfound");
+        if (allowClaim) setStatus("notfound");
         return;
       }
 
@@ -159,12 +163,14 @@ export default function RoomClient({ roomId }) {
         role = Number(savedRole);
       } else if (savedRole === "spectator") {
         role = "spectator";
-      } else {
+      } else if (allowClaim) {
         const claimed = await claimRole(roomId, room);
         role = claimed.role;
         blackClaimed = claimed.blackClaimed;
         whiteClaimed = claimed.whiteClaimed;
         sessionStorage.setItem(`gomoku-role-${roomId}`, String(role));
+      } else {
+        return;
       }
 
       if (cancelled) return;
@@ -174,7 +180,7 @@ export default function RoomClient({ roomId }) {
       setStatus("ready");
     }
 
-    setup();
+    fetchAndApply(true);
 
     const channel = supabase
       .channel(`room-${roomId}`)
@@ -190,7 +196,17 @@ export default function RoomClient({ roomId }) {
       .on("broadcast", { event: "chat" }, ({ payload }) => {
         setChatMessages((prev) => [...prev, payload]);
       })
-      .subscribe();
+      .subscribe((status) => {
+        // 위 최초 fetchAndApply(select)와 실시간 구독이 실제로 확정되는 시점 사이에는 좁은 시간창이
+        // 있어서, 그 사이에 커밋된 갱신(특히 흑돌의 시작 증강 선택 -> 백돌 화면으로 넘어가는 체이닝처럼
+        // "다른 플레이어가 만든 단발성 갱신")은 postgres_changes로 못 받고 영영 놓칠 수 있었음
+        // (초대 링크를 받자마자 여는 흔한 타이밍이라 실제로 부딪히기 쉬움) - 구독이 확정된 직후
+        // 한 번 더 최신 상태를 끌어와 이 창에서 놓쳤을 갱신을 안전하게 따라잡음
+        if (status === "SUBSCRIBED" && !resyncedAfterSubscribe) {
+          resyncedAfterSubscribe = true;
+          fetchAndApply(false);
+        }
+      });
     channelRef.current = channel;
 
     return () => {
