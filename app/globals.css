@@ -540,6 +540,9 @@ body {
 /* 증강 선택 화면의 "누르고 있으면 판 보기"와 같은 패턴 - 승리 화면이 최종 보드를 영구히 가리던 문제 보완 */
 .winOverlay.peeking {
   background: rgba(0, 0, 0, 0.06);
+  /* 기본 .winOverlay의 backdrop-filter: blur(3px)가 peeking 중에도 그대로 남아있어서
+     "판 보기"를 눌러도 보드가 흐릿하게 보이던 버그 - 판 보기 중엔 블러를 완전히 꺼야 함 */
+  backdrop-filter: none;
   pointer-events: none;
 }
 .winOverlay.peeking .winOverlayCard {
