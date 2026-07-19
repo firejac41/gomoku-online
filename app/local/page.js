@@ -64,7 +64,7 @@ export default function LocalGamePage() {
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
-    breezeCooldown, saltScatterCooldown, acornTossCooldown,
+    breezeCooldown, saltScatterCooldown, acornTossCooldown, spotSwapCooldown, turfCooldown, gustCooldown, saltBombCooldown, typhoonCooldown,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -313,6 +313,11 @@ export default function LocalGamePage() {
             breeze: breezeCooldown[1],
             saltScatter: saltScatterCooldown[1],
             acornToss: acornTossCooldown[1],
+            spotSwap: spotSwapCooldown[1],
+            turf: turfCooldown[1],
+            gust: gustCooldown[1],
+            saltBomb: saltBombCooldown[1],
+            typhoon: typhoonCooldown[1],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
@@ -359,6 +364,11 @@ export default function LocalGamePage() {
             breeze: breezeCooldown[2],
             saltScatter: saltScatterCooldown[2],
             acornToss: acornTossCooldown[2],
+            spotSwap: spotSwapCooldown[2],
+            turf: turfCooldown[2],
+            gust: gustCooldown[2],
+            saltBomb: saltBombCooldown[2],
+            typhoon: typhoonCooldown[2],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}

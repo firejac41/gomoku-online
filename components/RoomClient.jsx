@@ -413,7 +413,7 @@ export default function RoomClient({ roomId }) {
     deadCells, prisonActive, lastMove, rematchRequested, ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell, disguisedCards,
-    breezeCooldown, saltScatterCooldown, acornTossCooldown,
+    breezeCooldown, saltScatterCooldown, acornTossCooldown, spotSwapCooldown, turfCooldown, gustCooldown, saltBombCooldown, typhoonCooldown,
   } = gameState;
   const ringBounds = getRingBounds(ringStartMove, placementClock, ringTarget);
   // 링 위에서 싸우자: 발동 즉시 최종 위치가 공개되니, 지금 레벨과 무관하게 항상 미리보기로 계산
@@ -571,6 +571,11 @@ export default function RoomClient({ roomId }) {
             breeze: breezeCooldown[1],
             saltScatter: saltScatterCooldown[1],
             acornToss: acornTossCooldown[1],
+            spotSwap: spotSwapCooldown[1],
+            turf: turfCooldown[1],
+            gust: gustCooldown[1],
+            saltBomb: saltBombCooldown[1],
+            typhoon: typhoonCooldown[1],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1 && myColor === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
@@ -616,6 +621,11 @@ export default function RoomClient({ roomId }) {
             breeze: breezeCooldown[2],
             saltScatter: saltScatterCooldown[2],
             acornToss: acornTossCooldown[2],
+            spotSwap: spotSwapCooldown[2],
+            turf: turfCooldown[2],
+            gust: gustCooldown[2],
+            saltBomb: saltBombCooldown[2],
+            typhoon: typhoonCooldown[2],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2 && myColor === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}

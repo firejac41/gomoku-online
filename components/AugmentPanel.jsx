@@ -36,6 +36,11 @@ const ACTIVE_ABILITIES = {
   breeze: "상대 외톨이 돌 밀기",
   saltScatter: "소금 뿌리기",
   acornToss: "상대 외톨이 돌 없애기 (사용하면 턴 넘어감)",
+  spotSwap: "외톨이 돌 자리 바꾸기",
+  turf: "텃세 부리기",
+  gust: "돌풍 일으키기",
+  saltBomb: "소금 폭탄 던지기",
+  typhoon: "태풍 일으키기",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함
