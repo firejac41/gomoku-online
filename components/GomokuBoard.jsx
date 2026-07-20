@@ -23,8 +23,9 @@ const FOG_BAND_PERCENT = ((PADDING + 1.5 * CELL) / CANVAS_SIZE) * 100;
 // ultimatumCell: 내가 선언한 최후통첩 칸(보라 사각 점선 - 나에게만 보임), fadedUltimatumCell: 상대가 선언한 칸(로컬 모드에서만 흐리게 표시)
 // foresightCells: 예지로 강조할, 상대가 다음에 두면 열린 3목이 되는 빈 칸(노란 다이아몬드)
 // checkerboardActive: 체크무늬 발동 중이면 (x+y) 짝수 칸에 옅은 체크 타일 하이라이트를 깔아줌
-// fogTurnsLeft: 안개에 걸린 내 남은 턴 수(0보다 크면) - 보드 외곽 2줄을 안개 오버레이로 가림 (온라인 전용)
+// fogTurnsLeft: 안개(레거시)에 걸린 내 남은 턴 수(0보다 크면) - 보드 외곽 2줄을 안개 오버레이로 가림 (온라인 전용)
 // reverseScaleCells: 역린으로 표시된 돌들(빨간 다이아몬드 - 숨김 없이 양쪽 다 보임) - 인접 8칸에 두면 무효화됨
+// fogCells: 새 안개(fogZone)로 가려진 칸들 - 캔버스에 짙은 사각형을 덮어서 그 밑 내용을 가림 (온라인 전용, 피해자 화면에만 전달됨)
 export default function GomokuBoard({
   board,
   onCellClick,
@@ -45,6 +46,7 @@ export default function GomokuBoard({
   checkerboardActive = false,
   fogTurnsLeft = 0,
   reverseScaleCells = [],
+  fogCells = [],
 }) {
   const canvasRef = useRef(null);
 
@@ -274,7 +276,18 @@ export default function GomokuBoard({
         }
       }
     }
-  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ringFinalBounds, ultimatumCell, fadedUltimatumCell, foresightCells, checkerboardActive, reverseScaleCells]);
+
+    // 안개(fogZone): 상대가 지정한 3x3 구역을 짙은 사각형으로 덮어서 그 밑 내용(돌 포함)을 가림 - 돌보다
+    // 나중에 그려야 실제로 가려짐. backdrop-filter 대신 순수 캔버스 채우기라 CSS 빌드 파이프라인 이슈와 무관
+    if (fogCells.length > 0) {
+      ctx.fillStyle = "rgba(15, 15, 20, 0.94)";
+      for (const { x, y } of fogCells) {
+        const cx = PADDING + x * CELL;
+        const cy = PADDING + y * CELL;
+        ctx.fillRect(cx - CELL / 2, cy - CELL / 2, CELL, CELL);
+      }
+    }
+  }, [board, blockedCells, fadedBlockedCells, forbiddenCells, pendingCells, watchtowerCells, threatLines, winCells, lastOpponentMoveCell, ringBounds, ringFinalBounds, ultimatumCell, fadedUltimatumCell, foresightCells, checkerboardActive, reverseScaleCells, fogCells]);
 
   function handleClick(e) {
     if (disabled) return;
