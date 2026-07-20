@@ -42,6 +42,9 @@ const ACTIVE_ABILITIES = {
   gust: "돌풍 일으키기",
   saltBomb: "소금 폭탄 던지기",
   typhoon: "태풍 일으키기",
+  vinegar: "초치기 (상대 리롤 1회 차감)",
+  fogZone: "안개 뿌리기 (칸 선택)",
+  evade: "돌 보호하기 (회피)",
 };
 
 // side: 이 패널이 화면 왼쪽/오른쪽 중 어디에 있는지 - 툴팁이 보드 쪽(반대 방향)으로 열리게 하기 위함

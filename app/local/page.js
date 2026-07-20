@@ -8,10 +8,9 @@ import AugmentSelectOverlay from "@/components/AugmentSelectOverlay";
 import WinOverlay from "@/components/WinOverlay";
 import { gameReducer, initialGameState, hasRealChange, ABILITY_SOUND_ACTION_TYPES } from "@/lib/gameReducer";
 import {
-  findThreatCells,
   findThreatLines,
   findForbiddenCells,
-  findOpenThreeSetupCells,
+  findOpenFourSetupCells,
   getEffectiveAugmentIds,
   getRingBounds,
   getRingFinalBounds,
@@ -37,6 +36,9 @@ const TARGET_HINT = {
   prevention: "보호할 내 돌을 선택하세요",
   lifeTransfer: "골드로 교체할 실버 카드를 내 패널에서 선택하세요",
   reverseScale: "역린으로 표시할 내 돌을 선택하세요",
+  fogZone: "안개로 덮을 칸을 선택하세요 (중심 3x3이 상대 화면에서 가려져요)",
+  evade: "보호할 내 돌을 선택하세요",
+  steal: "데려올 상대 돌을 선택하세요 (고립되지 않고 3목 이상 라인에 안 낀 돌만 가능)",
 };
 
 function relocateHint(pendingTarget) {
@@ -65,6 +67,7 @@ export default function LocalGamePage() {
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
     breezeCooldown, saltScatterCooldown, acornTossCooldown, spotSwapCooldown, turfCooldown, recruitCooldown, gustCooldown, saltBombCooldown, typhoonCooldown,
+    vinegarCooldown, fogZoneCooldown, fogZoneCells, evadeCooldown,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -182,20 +185,18 @@ export default function LocalGamePage() {
     return findThreatLines(board, opponentColor, opponentAugIds, lastMove[opponent]);
   }, [board, ownedAugments, currentPlayer, opponent, opponentColor, lastMove, stonesPlaced]);
 
-  // 직감: 지금 두면 바로 이기는 칸을 강조 표시 (findThreatCells를 나 자신 기준으로 재사용)
+  // 훈수: 내가 다음 수로 열린 4목을 만드는 자리를 강조 표시
   const winCells = useMemo(() => {
     const myAugIds = ownedAugments[currentPlayer].map((a) => a.id);
-    if (!myAugIds.includes("intuition")) return [];
-    const totalStonesPlaced = stonesPlaced[1] + stonesPlaced[2];
-    const myEffectiveAugIds = getEffectiveAugmentIds(myAugIds, totalStonesPlaced);
-    return findThreatCells(board, currentColor, myEffectiveAugIds, lastMove[currentPlayer]);
-  }, [board, ownedAugments, currentPlayer, currentColor, lastMove, stonesPlaced]);
+    if (!myAugIds.includes("coaching")) return [];
+    return findOpenFourSetupCells(board, currentColor);
+  }, [board, ownedAugments, currentPlayer, currentColor]);
 
-  // 예지: 상대가 다음에 두면 열린 3목이 되는 빈 칸을 미리 강조 표시
+  // 위협 확장 시야: 상대의 다음 수로 열린 4목을 만드는 자리를 미리 강조 표시
   const foresightCells = useMemo(() => {
     const myAugIds = ownedAugments[currentPlayer].map((a) => a.id);
-    if (!myAugIds.includes("foresight")) return [];
-    return findOpenThreeSetupCells(board, opponentColor);
+    if (!myAugIds.includes("threatExpand")) return [];
+    return findOpenFourSetupCells(board, opponentColor);
   }, [board, ownedAugments, currentPlayer, opponentColor]);
 
   // 마지막으로 놓인 수 표시 - 지금 차례가 아닌 쪽이 방금 둔 사람
@@ -319,6 +320,9 @@ export default function LocalGamePage() {
             gust: gustCooldown[1],
             saltBomb: saltBombCooldown[1],
             typhoon: typhoonCooldown[1],
+            vinegar: vinegarCooldown[1],
+            fogZone: fogZoneCooldown[1],
+            evade: evadeCooldown[1],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 1}
           eligibleCardIds={eligibleCardIdsFor(1)}
@@ -345,6 +349,7 @@ export default function LocalGamePage() {
           foresightCells={foresightCells}
           checkerboardActive={checkerboardActive}
           fogTurnsLeft={fogTurnsLeft[currentPlayer]}
+          fogCells={fogZoneCells[currentPlayer]}
         />
         <AugmentPanel
           title={colorForPlayer(2, roleSwapActive) === 1 ? "⚫ 흑돌 증강" : "⚪ 백돌 증강"}
@@ -371,6 +376,9 @@ export default function LocalGamePage() {
             gust: gustCooldown[2],
             saltBomb: saltBombCooldown[2],
             typhoon: typhoonCooldown[2],
+            vinegar: vinegarCooldown[2],
+            fogZone: fogZoneCooldown[2],
+            evade: evadeCooldown[2],
           }}
           cardTargetActive={cardTargetKind !== null && pendingTarget.player === 2}
           eligibleCardIds={eligibleCardIdsFor(2)}
