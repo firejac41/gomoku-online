@@ -66,7 +66,7 @@ export default function SingleplayerGamePage() {
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
-    breezeCooldown, saltScatterCooldown, acornTossCooldown, spotSwapCooldown, turfCooldown, gustCooldown, saltBombCooldown, typhoonCooldown,
+    breezeCooldown, saltScatterCooldown, acornTossCooldown, spotSwapCooldown, turfCooldown, recruitCooldown, gustCooldown, saltBombCooldown, typhoonCooldown,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -331,6 +331,7 @@ export default function SingleplayerGamePage() {
             acornToss: acornTossCooldown[HUMAN_PLAYER],
             spotSwap: spotSwapCooldown[HUMAN_PLAYER],
             turf: turfCooldown[HUMAN_PLAYER],
+            recruit: recruitCooldown[HUMAN_PLAYER],
             gust: gustCooldown[HUMAN_PLAYER],
             saltBomb: saltBombCooldown[HUMAN_PLAYER],
             typhoon: typhoonCooldown[HUMAN_PLAYER],
@@ -382,6 +383,7 @@ export default function SingleplayerGamePage() {
             acornToss: acornTossCooldown[AI_PLAYER],
             spotSwap: spotSwapCooldown[AI_PLAYER],
             turf: turfCooldown[AI_PLAYER],
+            recruit: recruitCooldown[AI_PLAYER],
             gust: gustCooldown[AI_PLAYER],
             saltBomb: saltBombCooldown[AI_PLAYER],
             typhoon: typhoonCooldown[AI_PLAYER],

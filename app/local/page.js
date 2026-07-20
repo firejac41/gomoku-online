@@ -64,7 +64,7 @@ export default function LocalGamePage() {
     ringActive, ringStartMove, ringTarget, placementClock, chaosActive, roleSwapActive, peekedCard, ultimatumCell, boardFlipCooldown,
     removeStoneCooldown, selfUndoCooldown, jailbreakCooldown, relocateCooldown, prepStanceCooldown, preventionCooldown,
     fogTurnsLeft, checkerboardActive, timeLimitOverride, pokerFacePending, reverseScaleCell,
-    breezeCooldown, saltScatterCooldown, acornTossCooldown, spotSwapCooldown, turfCooldown, gustCooldown, saltBombCooldown, typhoonCooldown,
+    breezeCooldown, saltScatterCooldown, acornTossCooldown, spotSwapCooldown, turfCooldown, recruitCooldown, gustCooldown, saltBombCooldown, typhoonCooldown,
   } = state;
 
   const turnTimeLimit = timeLimitOverride || DEFAULT_TURN_TIME_LIMIT;
@@ -315,6 +315,7 @@ export default function LocalGamePage() {
             acornToss: acornTossCooldown[1],
             spotSwap: spotSwapCooldown[1],
             turf: turfCooldown[1],
+            recruit: recruitCooldown[1],
             gust: gustCooldown[1],
             saltBomb: saltBombCooldown[1],
             typhoon: typhoonCooldown[1],
@@ -366,6 +367,7 @@ export default function LocalGamePage() {
             acornToss: acornTossCooldown[2],
             spotSwap: spotSwapCooldown[2],
             turf: turfCooldown[2],
+            recruit: recruitCooldown[2],
             gust: gustCooldown[2],
             saltBomb: saltBombCooldown[2],
             typhoon: typhoonCooldown[2],

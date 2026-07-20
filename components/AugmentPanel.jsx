@@ -38,6 +38,7 @@ const ACTIVE_ABILITIES = {
   acornToss: "상대 외톨이 돌 없애기 (사용하면 턴 넘어감)",
   spotSwap: "외톨이 돌 자리 바꾸기",
   turf: "텃세 부리기",
+  recruit: "상대 외톨이 돌 영입하기 (사용하면 턴 넘어감)",
   gust: "돌풍 일으키기",
   saltBomb: "소금 폭탄 던지기",
   typhoon: "태풍 일으키기",
